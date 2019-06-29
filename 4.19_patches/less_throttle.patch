@@ -1,0 +1,42 @@
+--- a/kernel/sys.c	2017-04-12 12:41:42.000000000 +0200
++++ b/kernel/sys.c	2017-05-22 18:40:50.137517197 +0200
+@@ -2072,6 +2072,26 @@
+ }
+ #endif
+ 
++static int prctl_set_less_throttle(void)
++{
++        /*if (!capable(CAP_SYS_ADMIN))
++                return -EPERM;*/
++
++	current->flags |= (PF_LESS_THROTTLE /*| PF_MEMALLOC_NOFS*/);
++
++	return 0;
++}
++
++static int prctl_unset_less_throttle(void)
++{
++        /*if (!capable(CAP_SYS_ADMIN))
++                return -EPERM;*/
++
++	current->flags &= ~(PF_LESS_THROTTLE /*| PF_MEMALLOC_NOFS*/);
++
++	return 0;
++}
++
+ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+ 		unsigned long, arg4, unsigned long, arg5)
+ {
+@@ -2270,6 +2290,12 @@
+ 	case PR_GET_FP_MODE:
+ 		error = GET_FP_MODE(me);
+ 		break;
++	case 200:
++		error = prctl_set_less_throttle();
++		break;
++	case 201:
++		error = prctl_unset_less_throttle();
++		break;
+ 	default:
+ 		error = -EINVAL;
+ 		break;

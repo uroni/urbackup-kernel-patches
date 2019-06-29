@@ -1,0 +1,59 @@
+From 1395c1eb194c25b9a8516e6b46ea5be644c44c9b Mon Sep 17 00:00:00 2001
+From: Josef Bacik <josef@toxicpanda.com>
+Date: Thu, 24 Jan 2019 09:31:43 -0500
+Subject: [PATCH] btrfs: don't end the transaction for delayed refs in throttle
+
+Previously callers to btrfs_end_transaction_throttle() would commit the
+transaction if there wasn't enough delayed refs space.  This happens in
+relocation, and if the fs is relatively empty we'll run out of delayed
+refs space basically immediately, so we'll just be stuck in this loop of
+committing the transaction over and over again.
+
+This code existed because we didn't have a good feedback mechanism for
+running delayed refs, but with the delayed refs rsv we do now.  Delete
+this throttling code and let the btrfs_start_transaction() in relocation
+deal with putting pressure on the delayed refs infrastructure.  With
+this patch we no longer take 5 minutes to balance a metadata only fs.
+
+Qu has submitted a fstest to catch slow balance or excessive transaction
+commits. Steps to reproduce:
+
+* create subvolume
+* create many (eg. 16000) inlined files, of size 2KiB
+* iteratively snapshot and touch several files to trigger metadata
+  updates
+* start balance -m
+
+Reported-by: Qu Wenruo <wqu@suse.com>
+Fixes: 64403612b73a ("btrfs: rework btrfs_check_space_for_delayed_refs")
+Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+[ add tags and steps to reproduce ]
+Signed-off-by: David Sterba <dsterba@suse.com>
+
+(cherry picked from commit 302167c50b32e7fccc98994a91d40ddbbab04e52)
+---
+ fs/btrfs/transaction.c | 8 --------
+ 1 file changed, 8 deletions(-)
+
+diff --git a/fs/btrfs/transaction.c b/fs/btrfs/transaction.c
+index e0db42b7f0c8..23ba34d5f81a 100644
+--- a/fs/btrfs/transaction.c
++++ b/fs/btrfs/transaction.c
+@@ -885,14 +885,6 @@ static int __btrfs_end_transaction(struct btrfs_trans_handle *trans,
+ 
+ 	btrfs_trans_release_chunk_metadata(trans);
+ 
+-	if (lock && should_end_transaction(trans) &&
+-	    READ_ONCE(cur_trans->state) == TRANS_STATE_RUNNING) {
+-		spin_lock(&info->trans_lock);
+-		if (cur_trans->state == TRANS_STATE_RUNNING)
+-			cur_trans->state = TRANS_STATE_BLOCKED;
+-		spin_unlock(&info->trans_lock);
+-	}
+-
+ 	if (lock && READ_ONCE(cur_trans->state) == TRANS_STATE_BLOCKED) {
+ 		if (throttle)
+ 			return btrfs_commit_transaction(trans);
+-- 
+2.11.0.windows.1
+

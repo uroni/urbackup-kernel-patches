@@ -1,0 +1,148 @@
+From d4119a4e325df93f197a2c7f1ad1b2cf8c9e800a Mon Sep 17 00:00:00 2001
+From: Josef Bacik <josef@toxicpanda.com>
+Date: Mon, 3 Dec 2018 10:20:36 -0500
+Subject: [PATCH] btrfs: rework btrfs_check_space_for_delayed_refs
+
+Now with the delayed_refs_rsv we can now know exactly how much pending
+delayed refs space we need.  This means we can drastically simplify
+btrfs_check_space_for_delayed_refs by simply checking how much space we
+have reserved for the global rsv (which acts as a spill over buffer) and
+the delayed refs rsv.  If our total size is beyond that amount then we
+know it's time to commit the transaction and stop any more delayed refs
+from being generated.
+
+With the introduction of dealyed_refs_rsv infrastructure, namely
+btrfs_update_delayed_refs_rsv we now know exactly how much pending
+delayed refs space is required.
+
+Reviewed-by: Nikolay Borisov <nborisov@suse.com>
+Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+Signed-off-by: David Sterba <dsterba@suse.com>
+(cherry picked from commit 64403612b73a94bc7b02cf8ca126e3b8ced6e921)
+
+# Conflicts:
+#	fs/btrfs/ctree.h
+#	fs/btrfs/extent-tree.c
+#	fs/btrfs/inode.c
+#	fs/btrfs/transaction.c
+---
+ fs/btrfs/ctree.h       |  3 +--
+ fs/btrfs/extent-tree.c | 48 ++++++++++++++++++------------------------------
+ fs/btrfs/inode.c       |  2 +-
+ fs/btrfs/transaction.c |  2 +-
+ 4 files changed, 21 insertions(+), 34 deletions(-)
+
+diff --git a/fs/btrfs/ctree.h b/fs/btrfs/ctree.h
+index 6e391fdd59ed..2977e6dd9d20 100644
+--- a/fs/btrfs/ctree.h
++++ b/fs/btrfs/ctree.h
+@@ -2613,8 +2613,7 @@ static inline u64 btrfs_calc_trunc_metadata_size(struct btrfs_fs_info *fs_info,
+ 
+ int btrfs_should_throttle_delayed_refs(struct btrfs_trans_handle *trans,
+ 				       struct btrfs_fs_info *fs_info);
+-int btrfs_check_space_for_delayed_refs(struct btrfs_trans_handle *trans,
+-				       struct btrfs_fs_info *fs_info);
++bool btrfs_check_space_for_delayed_refs(struct btrfs_fs_info *fs_info);
+ void btrfs_dec_block_group_reservations(struct btrfs_fs_info *fs_info,
+ 					 const u64 start);
+ void btrfs_wait_block_group_reservations(struct btrfs_block_group_cache *bg);
+diff --git a/fs/btrfs/extent-tree.c b/fs/btrfs/extent-tree.c
+index 79f6403aabfa..9d1cf156e9e0 100644
+--- a/fs/btrfs/extent-tree.c
++++ b/fs/btrfs/extent-tree.c
+@@ -2775,40 +2775,28 @@ u64 btrfs_csum_bytes_to_leaves(struct btrfs_fs_info *fs_info, u64 csum_bytes)
+ 	return num_csums;
+ }
+ 
+-int btrfs_check_space_for_delayed_refs(struct btrfs_trans_handle *trans,
+-				       struct btrfs_fs_info *fs_info)
++bool btrfs_check_space_for_delayed_refs(struct btrfs_fs_info *fs_info)
+ {
+-	struct btrfs_block_rsv *global_rsv;
+-	u64 num_heads = trans->transaction->delayed_refs.num_heads_ready;
+-	u64 csum_bytes = trans->transaction->delayed_refs.pending_csums;
+-	unsigned int num_dirty_bgs = trans->transaction->num_dirty_bgs;
+-	u64 num_bytes, num_dirty_bgs_bytes;
+-	int ret = 0;
++	struct btrfs_block_rsv *delayed_refs_rsv = &fs_info->delayed_refs_rsv;
++	struct btrfs_block_rsv *global_rsv = &fs_info->global_block_rsv;
++	bool ret = false;
++	u64 reserved;
+ 
+-	num_bytes = btrfs_calc_trans_metadata_size(fs_info, 1);
+-	num_heads = heads_to_leaves(fs_info, num_heads);
+-	if (num_heads > 1)
+-		num_bytes += (num_heads - 1) * fs_info->nodesize;
+-	num_bytes <<= 1;
+-	num_bytes += btrfs_csum_bytes_to_leaves(fs_info, csum_bytes) *
+-							fs_info->nodesize;
+-	num_dirty_bgs_bytes = btrfs_calc_trans_metadata_size(fs_info,
+-							     num_dirty_bgs);
+-	global_rsv = &fs_info->global_block_rsv;
++	spin_lock(&global_rsv->lock);
++	reserved = global_rsv->reserved;
++	spin_unlock(&global_rsv->lock);
+ 
+ 	/*
+-	 * If we can't allocate any more chunks lets make sure we have _lots_ of
+-	 * wiggle room since running delayed refs can create more delayed refs.
++	 * Since the global reserve is just kind of magic we don't really want
++	 * to rely on it to save our bacon, so if our size is more than the
++	 * delayed_refs_rsv and the global rsv then it's time to think about
++	 * bailing.
+ 	 */
+-	if (global_rsv->space_info->full) {
+-		num_dirty_bgs_bytes <<= 1;
+-		num_bytes <<= 1;
+-	}
+-
+-	spin_lock(&global_rsv->lock);
+-	if (global_rsv->reserved <= num_bytes + num_dirty_bgs_bytes)
+-		ret = 1;
+-	spin_unlock(&global_rsv->lock);
++	spin_lock(&delayed_refs_rsv->lock);
++	reserved += delayed_refs_rsv->reserved;
++	if (delayed_refs_rsv->size >= reserved)
++		ret = true;
++	spin_unlock(&delayed_refs_rsv->lock);
+ 	return ret;
+ }
+ 
+@@ -2828,7 +2816,7 @@ int btrfs_should_throttle_delayed_refs(struct btrfs_trans_handle *trans,
+ 	if (val >= NSEC_PER_SEC / 2)
+ 		return 2;
+ 
+-	return btrfs_check_space_for_delayed_refs(trans, fs_info);
++	return btrfs_check_space_for_delayed_refs(trans->fs_info);
+ }
+ 
+ struct async_delayed_refs {
+diff --git a/fs/btrfs/inode.c b/fs/btrfs/inode.c
+index 59f361f7d0c1..dff62c8b20ba 100644
+--- a/fs/btrfs/inode.c
++++ b/fs/btrfs/inode.c
+@@ -5357,7 +5357,7 @@ static struct btrfs_trans_handle *evict_refill_and_join(struct btrfs_root *root,
+ 		 * Try to steal from the global reserve if there is space for
+ 		 * it.
+ 		 */
+-		if (!btrfs_check_space_for_delayed_refs(trans, fs_info) &&
++		if (!btrfs_check_space_for_delayed_refs(fs_info) &&
+ 		    !btrfs_block_rsv_migrate(global_rsv, rsv, min_size, 0))
+ 			return trans;
+ 
+diff --git a/fs/btrfs/transaction.c b/fs/btrfs/transaction.c
+index 23ba34d5f81a..519fe59150ba 100644
+--- a/fs/btrfs/transaction.c
++++ b/fs/btrfs/transaction.c
+@@ -790,7 +790,7 @@ static int should_end_transaction(struct btrfs_trans_handle *trans)
+ {
+ 	struct btrfs_fs_info *fs_info = trans->fs_info;
+ 
+-	if (btrfs_check_space_for_delayed_refs(trans, fs_info))
++	if (btrfs_check_space_for_delayed_refs(fs_info))
+ 		return 1;
+ 
+ 	return !!btrfs_block_rsv_check(&fs_info->global_block_rsv, 5);
+-- 
+2.11.0.windows.1
+

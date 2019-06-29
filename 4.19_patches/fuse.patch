@@ -1,0 +1,72 @@
+diff -u --exclude '*.cmd' --exclude '*.o' --exclude '*.ko' --exclude '*.mod.*' -r linux-4.14-rc3_orig/fs/fuse/file.c linux-4.14-rc3/fs/fuse/file.c
+--- linux-4.14-rc3_orig/fs/fuse/file.c	2017-10-01 23:54:54.000000000 +0200
++++ linux-4.14-rc3/fs/fuse/file.c	2017-10-04 17:44:20.387333366 +0200
+@@ -1424,6 +1424,14 @@
+ static ssize_t fuse_direct_read_iter(struct kiocb *iocb, struct iov_iter *to)
+ {
+ 	struct fuse_io_priv io = FUSE_IO_PRIV_SYNC(iocb);
++	if(!is_sync_kiocb(iocb) && iocb->ki_flags & IOCB_DIRECT) {
++                struct file *file = iocb->ki_filp;
++                struct inode *inode = file_inode(file);
++
++                if (is_bad_inode(inode))
++                        return -EIO;
++                return inode->i_data.a_ops->direct_IO(iocb, to);
++        }
+ 	return __fuse_direct_read(&io, to, &iocb->ki_pos);
+ }
+ 
+@@ -1439,6 +1447,11 @@
+ 	/* Don't allow parallel writes to the same file */
+ 	inode_lock(inode);
+ 	res = generic_write_checks(iocb, from);
++	if(res>0 && !is_sync_kiocb(iocb) && iocb->ki_flags & IOCB_DIRECT)
++        {
++                inode_unlock(inode);
++                return inode->i_data.a_ops->direct_IO(iocb, from);
++        }
+ 	if (res > 0)
+ 		res = fuse_direct_io(&io, from, &iocb->ki_pos, FUSE_DIO_WRITE);
+ 	fuse_invalidate_attr(inode);
+diff -u --exclude '*.cmd' --exclude '*.o' --exclude '*.ko' --exclude '*.mod.*' -r linux-4.14-rc3_orig/fs/fuse/fuse_i.h linux-4.14-rc3/fs/fuse/fuse_i.h
+--- linux-4.14-rc3_orig/fs/fuse/fuse_i.h	2017-10-01 23:54:54.000000000 +0200
++++ linux-4.14-rc3/fs/fuse/fuse_i.h	2017-10-03 13:33:47.853285521 +0200
+@@ -28,7 +28,7 @@
+ #include <linux/refcount.h>
+ 
+ /** Max number of pages that can be used in a single read request */
+-#define FUSE_MAX_PAGES_PER_REQ 32
++#define FUSE_MAX_PAGES_PER_REQ 512
+ 
+ /** Bias for fi->writectr, meaning new writepages must not be sent */
+ #define FUSE_NOWRITE INT_MIN
+diff -u --exclude '*.cmd' --exclude '*.o' --exclude '*.ko' --exclude '*.mod.*' -r linux-4.14-rc3_orig/fs/fuse/inode.c linux-4.14-rc3/fs/fuse/inode.c
+--- linux-4.14-rc3_orig/fs/fuse/inode.c	2017-10-01 23:54:54.000000000 +0200
++++ linux-4.14-rc3/fs/fuse/inode.c	2017-10-03 13:33:47.853285521 +0200
+@@ -874,7 +874,7 @@
+ 
+ 		if (arg->minor >= 6) {
+ 			ra_pages = arg->max_readahead / PAGE_SIZE;
+-			if (arg->flags & FUSE_ASYNC_READ)
++			//if (arg->flags & FUSE_ASYNC_READ)
+ 				fc->async_read = 1;
+ 			if (!(arg->flags & FUSE_POSIX_LOCKS))
+ 				fc->no_lock = 1;
+@@ -892,7 +892,7 @@
+ 				if (arg->flags & FUSE_EXPORT_SUPPORT)
+ 					fc->export_support = 1;
+ 			}
+-			if (arg->flags & FUSE_BIG_WRITES)
++			//if (arg->flags & FUSE_BIG_WRITES)
+ 				fc->big_writes = 1;
+ 			if (arg->flags & FUSE_DONT_MASK)
+ 				fc->dont_mask = 1;
+@@ -903,7 +903,7 @@
+ 				if (arg->flags & FUSE_READDIRPLUS_AUTO)
+ 					fc->readdirplus_auto = 1;
+ 			}
+-			if (arg->flags & FUSE_ASYNC_DIO)
++			//if (arg->flags & FUSE_ASYNC_DIO)
+ 				fc->async_dio = 1;
+ 			if (arg->flags & FUSE_WRITEBACK_CACHE)
+ 				fc->writeback_cache = 1;

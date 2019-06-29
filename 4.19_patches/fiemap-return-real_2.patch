@@ -1,0 +1,72 @@
+--- linux-4.19.30/fs/btrfs/inode.c	2019-04-21 02:40:54.721675751 +0200
++++ linux-4.19.30/fs/btrfs/inode.c	2019-04-21 02:41:09.814074593 +0200
+@@ -8583,7 +8583,7 @@
+ 	return ret;
+ }
+ 
+-#define BTRFS_FIEMAP_FLAGS	(FIEMAP_FLAG_SYNC)
++#define BTRFS_FIEMAP_FLAGS	(FIEMAP_FLAG_SYNC|8|16)
+ 
+ static int btrfs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
+ 		__u64 start, __u64 len)
+--- linux-4.19.30/fs/btrfs/extent_io.c	2019-04-21 02:44:18.603063707 +0200
++++ linux-4.19.30/fs/btrfs/extent_io.c	2019-04-21 03:00:12.724278644 +0200
+@@ -4428,6 +4428,9 @@
+ 	return ret;
+ }
+ 
++#define FIEMAP_FLAG_PHYSICAL 8
++#define FIEMAP_FLAG_NOSHARED 16
++
+ int extent_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
+ 		__u64 start, __u64 len)
+ {
+@@ -4572,14 +4575,18 @@
+ 			u64 bytenr = em->block_start -
+ 				(em->start - em->orig_start);
+ 
+-			map_len = em_len;
+-			ret = btrfs_map_block(root->fs_info, READ, disko,
++
++			if(fieinfo->fi_flags & FIEMAP_FLAG_PHYSICAL)
++			{
++				map_len = em_len;
++				ret = btrfs_map_block(root->fs_info, READ, disko,
+ 							&map_len, &bbio, 0);
+ 
+-			if(!ret && bbio) {
+-				disko = bbio->stripes[0].physical;
+-				btrfs_put_bbio(bbio);
+-				flags |= FIEMAP_EXTENT_MAPPED;
++				if(!ret && bbio) {
++					disko = bbio->stripes[0].physical;
++					btrfs_put_bbio(bbio);
++					flags |= FIEMAP_EXTENT_MAPPED;
++				}
+ 			}
+ 			
+ 			/*
+@@ -4589,13 +4596,16 @@
+ 			 * then we're just getting a count and we can skip the
+ 			 * lookup stuff.
+ 			 */
+-			/*ret = btrfs_check_shared(root,
+-						 btrfs_ino(BTRFS_I(inode)),
+-						 bytenr);
+-			if (ret < 0)
+-				goto out_free;
+-			if (ret)
+-				flags |= FIEMAP_EXTENT_SHARED;*/
++			if(!(fieinfo->fi_flags & FIEMAP_FLAG_NOSHARED))
++			{
++				ret = btrfs_check_shared(root,
++							 btrfs_ino(BTRFS_I(inode)),
++							 bytenr);
++				if (ret < 0)
++					goto out_free;
++				if (ret)
++					flags |= FIEMAP_EXTENT_SHARED;
++			}
+ 			ret = 0;
+ 		}
+ 		if (test_bit(EXTENT_FLAG_COMPRESSED, &em->flags))

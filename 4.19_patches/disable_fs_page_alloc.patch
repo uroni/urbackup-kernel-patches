@@ -1,0 +1,12 @@
+--- linux-4.19.13.orig/mm/page_alloc.c	2019-01-07 21:52:43.000000000 +0100
++++ linux-4.19.13/mm/page_alloc.c	2019-01-07 21:51:49.316367784 +0100
+@@ -3787,6 +3787,9 @@
+ 	struct page *page = NULL;
+ 	bool drained = false;
+ 
++	if(current->flags & PF_LESS_THROTTLE)
++		gfp_mask &= ~__GFP_FS;
++
+ 	*did_some_progress = __perform_reclaim(gfp_mask, order, ac);
+ 	if (unlikely(!(*did_some_progress)))
+ 		return NULL;

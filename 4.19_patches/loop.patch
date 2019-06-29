@@ -1,0 +1,19 @@
+--- linux-4.9.22_orig/drivers/block/loop.c	2017-04-12 12:41:42.000000000 +0200
++++ linux-4.9.22/drivers/block/loop.c	2017-06-01 13:46:38.337279134 +0200
+@@ -1742,7 +1744,7 @@
+ 	err = -ENOMEM;
+ 	lo->tag_set.ops = &loop_mq_ops;
+ 	lo->tag_set.nr_hw_queues = 1;
+-	lo->tag_set.queue_depth = 128;
++	lo->tag_set.queue_depth = 8192;
+ 	lo->tag_set.numa_node = NUMA_NO_NODE;
+ 	lo->tag_set.cmd_size = sizeof(struct loop_cmd);
+ 	lo->tag_set.flags = BLK_MQ_F_SHOULD_MERGE | BLK_MQ_F_SG_MERGE;
+@@ -1758,6 +1760,7 @@
+ 		goto out_cleanup_tags;
+ 	}
+ 	lo->lo_queue->queuedata = lo;
++	lo->lo_queue->limits.max_sectors = lo->lo_queue->limits.max_hw_sectors = 2048;
+ 
+ 	/*
+ 	 * It doesn't make sense to enable merge because the I/O
