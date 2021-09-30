@@ -1,0 +1,122 @@
+From d98b188ea463281ee89663c36d8ac0a030e93b0c Mon Sep 17 00:00:00 2001
+From: Nikolay Borisov <nborisov@suse.com>
+Date: Fri, 22 Jan 2021 11:58:02 +0200
+Subject: [PATCH] btrfs: fix parameter description in space-info.c
+
+With these fixes space-info.c is clear for W=1 warnings, namely the
+following ones are fixed:
+
+fs/btrfs/space-info.c:575: warning: Function parameter or member 'fs_info' not described in 'may_commit_transaction'
+fs/btrfs/space-info.c:575: warning: Function parameter or member 'space_info' not described in 'may_commit_transaction'
+fs/btrfs/space-info.c:1231: warning: Function parameter or member 'fs_info' not described in 'handle_reserve_ticket'
+fs/btrfs/space-info.c:1231: warning: Function parameter or member 'space_info' not described in 'handle_reserve_ticket'
+fs/btrfs/space-info.c:1231: warning: Function parameter or member 'ticket' not described in 'handle_reserve_ticket'
+fs/btrfs/space-info.c:1231: warning: Function parameter or member 'flush' not described in 'handle_reserve_ticket'
+fs/btrfs/space-info.c:1315: warning: Function parameter or member 'fs_info' not described in '__reserve_bytes'
+fs/btrfs/space-info.c:1315: warning: Function parameter or member 'space_info' not described in '__reserve_bytes'
+fs/btrfs/space-info.c:1315: warning: Function parameter or member 'orig_bytes' not described in '__reserve_bytes'
+fs/btrfs/space-info.c:1315: warning: Function parameter or member 'flush' not described in '__reserve_bytes'
+fs/btrfs/space-info.c:1427: warning: Function parameter or member 'root' not described in 'btrfs_reserve_metadata_bytes'
+fs/btrfs/space-info.c:1427: warning: Function parameter or member 'block_rsv' not described in 'btrfs_reserve_metadata_bytes'
+fs/btrfs/space-info.c:1427: warning: Function parameter or member 'orig_bytes' not described in 'btrfs_reserve_metadata_bytes'
+fs/btrfs/space-info.c:1427: warning: Function parameter or member 'flush' not described in 'btrfs_reserve_metadata_bytes'
+fs/btrfs/space-info.c:1462: warning: Function parameter or member 'fs_info' not described in 'btrfs_reserve_data_bytes'
+fs/btrfs/space-info.c:1462: warning: Function parameter or member 'bytes' not described in 'btrfs_reserve_data_bytes'
+fs/btrfs/space-info.c:1462: warning: Function parameter or member 'flush' not described in 'btrfs_reserve_data_bytes'
+
+Signed-off-by: Nikolay Borisov <nborisov@suse.com>
+Reviewed-by: David Sterba <dsterba@suse.com>
+Signed-off-by: David Sterba <dsterba@suse.com>
+---
+ fs/btrfs/space-info.c | 50 +++++++++++++++++++++++--------------------
+ 1 file changed, 27 insertions(+), 23 deletions(-)
+
+diff --git a/fs/btrfs/space-info.c b/fs/btrfs/space-info.c
+index 84fb94e78a8ff2..fd8e79e3c10e30 100644
+--- a/fs/btrfs/space-info.c
++++ b/fs/btrfs/space-info.c
+@@ -561,10 +561,10 @@ static void shrink_delalloc(struct btrfs_fs_info *fs_info,
+ }
+ 
+ /**
+- * maybe_commit_transaction - possibly commit the transaction if its ok to
+- * @root - the root we're allocating for
+- * @bytes - the number of bytes we want to reserve
+- * @force - force the commit
++ * Possibly commit the transaction if its ok to
++ *
++ * @fs_info:    the filesystem
++ * @space_info: space_info we are checking for commit, either data or metadata
+  *
+  * This will check to make sure that committing the transaction will actually
+  * get us somewhere and then commit the transaction if it does.  Otherwise it
+@@ -1215,11 +1215,12 @@ static void wait_reserve_ticket(struct btrfs_fs_info *fs_info,
+ }
+ 
+ /**
+- * handle_reserve_ticket - do the appropriate flushing and waiting for a ticket
+- * @fs_info - the fs
+- * @space_info - the space_info for the reservation
+- * @ticket - the ticket for the reservation
+- * @flush - how much we can flush
++ * Do the appropriate flushing and waiting for a ticket
++ *
++ * @fs_info:    the filesystem
++ * @space_info: space info for the reservation
++ * @ticket:     ticket for the reservation
++ * @flush:      how much we can flush
+  *
+  * This does the work of figuring out how to flush for the ticket, waiting for
+  * the reservation, and returning the appropriate error if there is one.
+@@ -1296,11 +1297,12 @@ static inline bool is_normal_flushing(enum btrfs_reserve_flush_enum flush)
+ }
+ 
+ /**
+- * reserve_metadata_bytes - try to reserve bytes from the block_rsv's space
+- * @root - the root we're allocating for
+- * @space_info - the space info we want to allocate from
+- * @orig_bytes - the number of bytes we want
+- * @flush - whether or not we can flush to make our reservation
++ * Try to reserve bytes from the block_rsv's space
++ *
++ * @fs_info:    the filesystem
++ * @space_info: space info we want to allocate from
++ * @orig_bytes: number of bytes we want
++ * @flush:      whether or not we can flush to make our reservation
+  *
+  * This will reserve orig_bytes number of bytes from the space info associated
+  * with the block_rsv.  If there is not enough space it will make an attempt to
+@@ -1407,11 +1409,12 @@ static int __reserve_bytes(struct btrfs_fs_info *fs_info,
+ }
+ 
+ /**
+- * reserve_metadata_bytes - try to reserve bytes from the block_rsv's space
+- * @root - the root we're allocating for
+- * @block_rsv - the block_rsv we're allocating for
+- * @orig_bytes - the number of bytes we want
+- * @flush - whether or not we can flush to make our reservation
++ * Trye to reserve metadata bytes from the block_rsv's space
++ *
++ * @root:       the root we're allocating for
++ * @block_rsv:  block_rsv we're allocating for
++ * @orig_bytes: number of bytes we want
++ * @flush:      whether or not we can flush to make our reservation
+  *
+  * This will reserve orig_bytes number of bytes from the space info associated
+  * with the block_rsv.  If there is not enough space it will make an attempt to
+@@ -1449,10 +1452,11 @@ int btrfs_reserve_metadata_bytes(struct btrfs_root *root,
+ }
+ 
+ /**
+- * btrfs_reserve_data_bytes - try to reserve data bytes for an allocation
+- * @fs_info - the filesystem
+- * @bytes - the number of bytes we need
+- * @flush - how we are allowed to flush
++ * Try to reserve data bytes for an allocation
++ *
++ * @fs_info: the filesystem
++ * @bytes:   number of bytes we need
++ * @flush:   how we are allowed to flush
+  *
+  * This will reserve bytes from the data space info.  If there is not enough
+  * space then we will attempt to flush space as specified by flush.

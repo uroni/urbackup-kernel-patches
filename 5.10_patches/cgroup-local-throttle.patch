@@ -1,0 +1,63 @@
+diff --git a/mm/page-writeback.c b/mm/page-writeback.c
+index 586042472ac9..4da099cdf945 100644
+--- a/mm/page-writeback.c
++++ b/mm/page-writeback.c
+@@ -1637,7 +1637,8 @@ static void balance_dirty_pages(struct bdi_writeback *wb,
+ 		 * If memcg domain is in effect, @dirty should be under
+ 		 * both global and memcg freerun ceilings.
+ 		 */
+-		if (dirty <= dirty_freerun_ceiling(thresh, bg_thresh) &&
++		if ( (dirty <= dirty_freerun_ceiling(thresh, bg_thresh) ||
++				(mdtc && (current->flags & PF_LOCAL_THROTTLE) ) ) &&
+ 		    (!mdtc ||
+ 		     m_dirty <= dirty_freerun_ceiling(m_thresh, m_bg_thresh))) {
+ 			unsigned long intv;
+@@ -1668,6 +1669,7 @@ static void balance_dirty_pages(struct bdi_writeback *wb,
+ 			wb_dirty_limits(gdtc);
+ 
+ 			if ((current->flags & PF_LOCAL_THROTTLE) &&
++				!mdtc &&
+ 			    gdtc->wb_dirty <
+ 			    dirty_freerun_ceiling(gdtc->wb_thresh,
+ 						  gdtc->wb_bg_thresh))
+@@ -1678,8 +1680,11 @@ static void balance_dirty_pages(struct bdi_writeback *wb,
+ 				goto free_running;
+ 		}
+ 
+-		dirty_exceeded = (gdtc->wb_dirty > gdtc->wb_thresh) &&
+-			((gdtc->dirty > gdtc->thresh) || strictlimit);
++		if( (current->flags & PF_LOCAL_THROTTLE) && mdtc)
++			dirty_exceeded = false;
++		else
++			dirty_exceeded = (gdtc->wb_dirty > gdtc->wb_thresh) &&
++				((gdtc->dirty > gdtc->thresh) || strictlimit);
+ 
+ 		wb_position_ratio(gdtc);
+ 		sdtc = gdtc;
+@@ -1693,23 +1698,14 @@ static void balance_dirty_pages(struct bdi_writeback *wb,
+ 			 */
+ 			if (!strictlimit) {
+ 				wb_dirty_limits(mdtc);
+-
+-				if ((current->flags & PF_LOCAL_THROTTLE) &&
+-				    mdtc->wb_dirty <
+-				    dirty_freerun_ceiling(mdtc->wb_thresh,
+-							  mdtc->wb_bg_thresh))
+-					/*
+-					 * LOCAL_THROTTLE tasks must not be
+-					 * throttled when below the per-wb
+-					 * freerun ceiling.
+-					 */
+-					goto free_running;
+ 			}
+ 			dirty_exceeded |= (mdtc->wb_dirty > mdtc->wb_thresh) &&
+ 				((mdtc->dirty > mdtc->thresh) || strictlimit);
+ 
+ 			wb_position_ratio(mdtc);
+-			if (mdtc->pos_ratio < gdtc->pos_ratio)
++			if ( current->flags & PF_LOCAL_THROTTLE )
++				sdtc = mdtc;
++			else if (mdtc->pos_ratio < gdtc->pos_ratio)
+ 				sdtc = mdtc;
+ 		}
+ 

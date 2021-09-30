@@ -1,0 +1,12 @@
+--- linux-5.10.39/fs/btrfs/inode.c.orig	2021-05-31 16:11:03.537017580 +0200
++++ linux-5.10.39/fs/btrfs/inode.c	2021-05-31 16:11:19.461591523 +0200
+@@ -408,8 +408,7 @@
+  */
+ static inline bool inode_can_compress(struct btrfs_inode *inode)
+ {
+-	if (inode->flags & BTRFS_INODE_NODATACOW ||
+-	    inode->flags & BTRFS_INODE_NODATASUM)
++	if (inode->flags & BTRFS_INODE_NODATACOW)
+ 		return false;
+ 	return true;
+ }

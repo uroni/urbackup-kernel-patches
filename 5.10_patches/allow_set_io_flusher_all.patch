@@ -1,0 +1,12 @@
+--- linux-5.9.6/kernel/sys.c.orig	2020-12-01 15:52:21.053762611 +0100
++++ linux-5.9.6/kernel/sys.c	2020-12-01 15:52:36.694304155 +0100
+@@ -2508,9 +2508,6 @@
+ 		error = GET_TAGGED_ADDR_CTRL();
+ 		break;
+ 	case PR_SET_IO_FLUSHER:
+-		if (!capable(CAP_SYS_RESOURCE))
+-			return -EPERM;
+-
+ 		if (arg3 || arg4 || arg5)
+ 			return -EINVAL;
+ 

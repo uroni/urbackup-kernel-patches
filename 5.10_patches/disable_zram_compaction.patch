@@ -1,0 +1,56 @@
+--- linux-5.10.48/mm/zsmalloc.c.orig	2021-07-16 18:16:35.395472198 +0200
++++ linux-5.10.48/mm/zsmalloc.c	2021-07-16 18:16:57.732225296 +0200
+@@ -176,7 +176,7 @@
+ static struct dentry *zs_stat_root;
+ #endif
+ 
+-#ifdef CONFIG_COMPACTION
++#ifdef CONFIG_ZRAM_COMPACTION
+ static struct vfsmount *zsmalloc_mnt;
+ #endif
+ 
+@@ -266,7 +266,7 @@
+ #ifdef CONFIG_ZSMALLOC_STAT
+ 	struct dentry *stat_dentry;
+ #endif
+-#ifdef CONFIG_COMPACTION
++#ifdef CONFIG_ZRAM_COMPACTION
+ 	struct inode *inode;
+ 	struct work_struct free_work;
+ 	/* A wait queue for when migration races with async_free_zspage() */
+@@ -287,7 +287,7 @@
+ 	unsigned int freeobj;
+ 	struct page *first_page;
+ 	struct list_head list; /* fullness list */
+-#ifdef CONFIG_COMPACTION
++#ifdef CONFIG_ZRAM_COMPACTION
+ 	rwlock_t lock;
+ #endif
+ };
+@@ -298,7 +298,7 @@
+ 	enum zs_mapmode vm_mm; /* mapping mode */
+ };
+ 
+-#ifdef CONFIG_COMPACTION
++#ifdef CONFIG_ZRAM_COMPACTION
+ static int zs_register_migration(struct zs_pool *pool);
+ static void zs_unregister_migration(struct zs_pool *pool);
+ static void migrate_lock_init(struct zspage *zspage);
+@@ -1741,7 +1741,7 @@
+ 	return fullness;
+ }
+ 
+-#ifdef CONFIG_COMPACTION
++#ifdef CONFIG_ZRAM_COMPACTION
+ /*
+  * To prevent zspage destroy during migration, zspage freeing should
+  * hold locks of all pages in the zspage.
+@@ -2373,7 +2373,7 @@
+ 	if (!pool->name)
+ 		goto err;
+ 
+-#ifdef CONFIG_COMPACTION
++#ifdef CONFIG_ZRAM_COMPACTION
+ 	init_waitqueue_head(&pool->migration_wait);
+ #endif
+ 

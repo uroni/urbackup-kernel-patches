@@ -1,0 +1,35 @@
+diff --git a/fs/btrfs/ioctl.c b/fs/btrfs/ioctl.c
+index bd3511c5ca81..3ae484768ce7 100644
+--- a/fs/btrfs/ioctl.c
++++ b/fs/btrfs/ioctl.c
+@@ -1985,7 +1985,7 @@ static noinline int btrfs_ioctl_subvol_setflags(struct file *file,
+ 		goto out_reset;
+ 	}
+ 
+-	ret = btrfs_commit_transaction(trans);
++	ret = btrfs_end_transaction(trans);
+ 
+ out_reset:
+ 	if (ret)
+diff --git a/fs/btrfs/transaction.c b/fs/btrfs/transaction.c
+index 20c6ac1a5de7..1dc44209c2ae 100644
+--- a/fs/btrfs/transaction.c
++++ b/fs/btrfs/transaction.c
+@@ -47,7 +47,7 @@
+  * | Will wait for previous running transaction to completely finish if there
+  * | is one
+  * |
+- * | Then one of the following happes:
++ * | Then one of the following happens:
+  * | - Wait for all other trans handle holders to release.
+  * |   The btrfs_commit_transaction() caller will do the commit work.
+  * | - Wait for current transaction to be committed by others.
+@@ -60,7 +60,7 @@
+  * |
+  * | To next stage:
+  * |  Caller is chosen to commit transaction N, and all other trans handle
+- * |  haven been released.
++ * |  have been released.
+  * V
+  * Transaction N [[TRANS_STATE_COMMIT_DOING]]
+  * |

@@ -1,0 +1,12 @@
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index d7cc65a..861fc1d 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1666,7 +1666,6 @@ config FAULT_INJECTION_DEBUG_FS
+ config FAULT_INJECTION_STACKTRACE_FILTER
+ 	bool "stacktrace filter for fault-injection capabilities"
+ 	depends on FAULT_INJECTION_DEBUG_FS && STACKTRACE_SUPPORT
+-	depends on !X86_64
+ 	select STACKTRACE
+ 	select FRAME_POINTER if !MIPS && !PPC && !S390 && !MICROBLAZE && !ARM_UNWIND && !ARC && !SCORE
+ 	help

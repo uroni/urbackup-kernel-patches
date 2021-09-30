@@ -1,0 +1,1251 @@
+diff --git a/fs/btrfs/backref.c b/fs/btrfs/backref.c
+index 6e447bdaf9ec..3a048e35d8a9 100644
+--- a/fs/btrfs/backref.c
++++ b/fs/btrfs/backref.c
+@@ -791,7 +791,7 @@ static int add_missing_keys(struct btrfs_fs_info *fs_info,
+ 		} else if (!extent_buffer_uptodate(eb)) {
+ 			free_pref(ref);
+ 			free_extent_buffer(eb);
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 		if (lock)
+ 			btrfs_tree_read_lock(eb);
+@@ -1337,7 +1337,7 @@ static int find_parent_nodes(struct btrfs_trans_handle *trans,
+ 					goto out;
+ 				} else if (!extent_buffer_uptodate(eb)) {
+ 					free_extent_buffer(eb);
+-					ret = -EIO;
++					{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 					goto out;
+ 				}
+ 
+@@ -1801,7 +1801,7 @@ int extent_from_logical(struct btrfs_fs_info *fs_info, u64 logical,
+ 		return 0;
+ 	}
+ 
+-	return -EIO;
++	{ WARN_ON(-EIO == -EIO); return -EIO; }
+ }
+ 
+ /*
+diff --git a/fs/btrfs/block-group.c b/fs/btrfs/block-group.c
+index c99e293b50f5..788a4af3dd6b 100644
+--- a/fs/btrfs/block-group.c
++++ b/fs/btrfs/block-group.c
+@@ -419,7 +419,7 @@ int btrfs_wait_block_group_cache_done(struct btrfs_block_group *cache)
+ 
+ 	wait_event(caching_ctl->wait, btrfs_block_group_done(cache));
+ 	if (cache->cached == BTRFS_CACHE_ERROR)
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 	btrfs_put_caching_control(caching_ctl);
+ 	return ret;
+ }
+@@ -1669,7 +1669,7 @@ int btrfs_rmap_block(struct btrfs_fs_info *fs_info, u64 chunk_start,
+ 
+ 	em = btrfs_get_chunk_map(fs_info, chunk_start, 1);
+ 	if (IS_ERR(em))
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 
+ 	map = em->map_lookup;
+ 	data_stripe_length = em->orig_block_len;
+diff --git a/fs/btrfs/compression.c b/fs/btrfs/compression.c
+index 7bdc86b74f15..e2c7201253de 100644
+--- a/fs/btrfs/compression.c
++++ b/fs/btrfs/compression.c
+@@ -174,7 +174,7 @@ static int check_compressed_csum(struct btrfs_inode *inode, struct bio *bio,
+ 				btrfs_dev_stat_inc_and_print(
+ 					btrfs_io_bio(bio)->device,
+ 					BTRFS_DEV_STAT_CORRUPTION_ERRS);
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 		cb_sum += csum_size;
+ 	}
+diff --git a/fs/btrfs/ctree.c b/fs/btrfs/ctree.c
+index 519cf145f9bd..8c2fc8e0f15f 100644
+--- a/fs/btrfs/ctree.c
++++ b/fs/btrfs/ctree.c
+@@ -1673,7 +1673,7 @@ int btrfs_realloc_node(struct btrfs_trans_handle *trans,
+ 					return PTR_ERR(cur);
+ 				} else if (!extent_buffer_uptodate(cur)) {
+ 					free_extent_buffer(cur);
+-					return -EIO;
++					{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 				}
+ 			} else if (!uptodate) {
+ 				err = btrfs_read_buffer(cur, gen,
+@@ -1830,6 +1830,7 @@ struct extent_buffer *btrfs_read_node_slot(struct extent_buffer *parent,
+ 			     level - 1, &first_key);
+ 	if (!IS_ERR(eb) && !extent_buffer_uptodate(eb)) {
+ 		free_extent_buffer(eb);
++		WARN_ON(-EIO == -EIO);
+ 		eb = ERR_PTR(-EIO);
+ 	}
+ 
+@@ -2440,7 +2441,7 @@ read_block_for_search(struct btrfs_root *root, struct btrfs_path *p,
+ 		}
+ 		free_extent_buffer(tmp);
+ 		btrfs_release_path(p);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 
+ 	/*
+@@ -2467,7 +2468,7 @@ read_block_for_search(struct btrfs_root *root, struct btrfs_path *p,
+ 		 * on our EAGAINs.
+ 		 */
+ 		if (!extent_buffer_uptodate(tmp))
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		free_extent_buffer(tmp);
+ 	} else {
+ 		ret = PTR_ERR(tmp);
+@@ -2972,7 +2973,7 @@ int btrfs_search_old_slot(struct btrfs_root *root, const struct btrfs_key *key,
+ again:
+ 	b = get_old_root(root, time_seq);
+ 	if (!b) {
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto done;
+ 	}
+ 	level = btrfs_header_level(b);
+diff --git a/fs/btrfs/delayed-inode.c b/fs/btrfs/delayed-inode.c
+index 4e2cce5ca7f6..19b19cfa2bb3 100644
+--- a/fs/btrfs/delayed-inode.c
++++ b/fs/btrfs/delayed-inode.c
+@@ -1150,7 +1150,7 @@ static int __btrfs_run_delayed_items(struct btrfs_trans_handle *trans, int nr)
+ 	bool count = (nr > 0);
+ 
+ 	if (TRANS_ABORTED(trans))
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 
+ 	path = btrfs_alloc_path();
+ 	if (!path)
+diff --git a/fs/btrfs/dev-replace.c b/fs/btrfs/dev-replace.c
+index d29780463182..f4771bb72625 100644
+--- a/fs/btrfs/dev-replace.c
++++ b/fs/btrfs/dev-replace.c
+@@ -181,7 +181,7 @@ int btrfs_init_dev_replace(struct btrfs_fs_info *fs_info)
+ 		 */
+ 		if (!dev_replace->srcdev &&
+ 		    !btrfs_test_opt(fs_info, DEGRADED)) {
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			btrfs_warn(fs_info,
+ 			   "cannot mount because device replace operation is ongoing and");
+ 			btrfs_warn(fs_info,
+@@ -190,7 +190,7 @@ int btrfs_init_dev_replace(struct btrfs_fs_info *fs_info)
+ 		}
+ 		if (!dev_replace->tgtdev &&
+ 		    !btrfs_test_opt(fs_info, DEGRADED)) {
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			btrfs_warn(fs_info,
+ 			   "cannot mount because device replace operation is ongoing and");
+ 			btrfs_warn(fs_info,
+diff --git a/fs/btrfs/disk-io.c b/fs/btrfs/disk-io.c
+index e025cd8f3f07..8025894de7ec 100644
+--- a/fs/btrfs/disk-io.c
++++ b/fs/btrfs/disk-io.c
+@@ -340,7 +340,7 @@ int btrfs_verify_level_key(struct extent_buffer *eb, int level,
+ 		btrfs_err(fs_info,
+ "tree level mismatch detected, bytenr=%llu level expected=%u has=%u",
+ 			  eb->start, level, found_level);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 
+ 	if (!first_key)
+@@ -410,7 +410,7 @@ static int btree_read_extent_buffer_pages(struct extent_buffer *eb,
+ 		if (!ret) {
+ 			if (verify_parent_transid(io_tree, eb,
+ 						   parent_transid, 0))
+-				ret = -EIO;
++				{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			else if (btrfs_verify_level_key(eb, level,
+ 						first_key, parent_transid))
+ 				ret = -EUCLEAN;
+@@ -554,7 +554,7 @@ int btrfs_validate_metadata_buffer(struct btrfs_io_bio *io_bio, u64 phy_offset,
+ 
+ 	eb->read_mirror = mirror;
+ 	if (test_bit(EXTENT_BUFFER_READ_ERR, &eb->bflags)) {
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto err;
+ 	}
+ 
+@@ -562,20 +562,20 @@ int btrfs_validate_metadata_buffer(struct btrfs_io_bio *io_bio, u64 phy_offset,
+ 	if (found_start != eb->start) {
+ 		btrfs_err_rl(fs_info, "bad tree block start, want %llu have %llu",
+ 			     eb->start, found_start);
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto err;
+ 	}
+ 	if (check_tree_block_fsid(eb)) {
+ 		btrfs_err_rl(fs_info, "bad fsid on block %llu",
+ 			     eb->start);
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto err;
+ 	}
+ 	found_level = btrfs_header_level(eb);
+ 	if (found_level >= BTRFS_MAX_LEVEL) {
+ 		btrfs_err(fs_info, "bad tree block level %d on %llu",
+ 			  (int)btrfs_header_level(eb), eb->start);
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto err;
+ 	}
+ 
+@@ -605,11 +605,11 @@ int btrfs_validate_metadata_buffer(struct btrfs_io_bio *io_bio, u64 phy_offset,
+ 	 */
+ 	if (found_level == 0 && btrfs_check_leaf_full(eb)) {
+ 		set_bit(EXTENT_BUFFER_CORRUPT, &eb->bflags);
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 	}
+ 
+ 	if (found_level > 0 && btrfs_check_node(eb))
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 
+ 	if (!ret)
+ 		set_extent_buffer_uptodate(eb);
+@@ -1313,7 +1313,7 @@ static struct btrfs_root *read_tree_root_path(struct btrfs_root *tree_root,
+ 		root->node = NULL;
+ 		goto fail;
+ 	} else if (!btrfs_buffer_uptodate(root->node, generation, 0)) {
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto fail;
+ 	}
+ 	root->commit_root = btrfs_root_node(root);
+@@ -2251,7 +2251,7 @@ static int btrfs_replay_log(struct btrfs_fs_info *fs_info,
+ 
+ 	if (fs_devices->rw_devices == 0) {
+ 		btrfs_warn(fs_info, "log replay required on RO media");
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 
+ 	log_tree_root = btrfs_alloc_root(fs_info, BTRFS_TREE_LOG_OBJECTID,
+@@ -2271,7 +2271,7 @@ static int btrfs_replay_log(struct btrfs_fs_info *fs_info,
+ 	} else if (!extent_buffer_uptodate(log_tree_root->node)) {
+ 		btrfs_err(fs_info, "failed to read log tree");
+ 		btrfs_put_root(log_tree_root);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 	/* returns with log_tree_root freed on success */
+ 	ret = btrfs_recover_log_trees(log_tree_root);
+@@ -2655,7 +2655,7 @@ static int __cold init_tree_roots(struct btrfs_fs_info *fs_info)
+ 
+ 		} else if (!extent_buffer_uptodate(tree_root->node)) {
+ 			handle_error = true;
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			btrfs_warn(fs_info, "error while reading tree root");
+ 			continue;
+ 		}
+@@ -3726,7 +3726,7 @@ static blk_status_t wait_dev_flush(struct btrfs_device *device)
+ static int check_barrier_error(struct btrfs_fs_info *fs_info)
+ {
+ 	if (!btrfs_check_rw_degradable(fs_info, NULL))
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	return 0;
+ }
+ 
+@@ -3905,7 +3905,7 @@ int write_all_supers(struct btrfs_fs_info *fs_info, int max_mirrors)
+ 		btrfs_handle_fs_error(fs_info, -EIO,
+ 				      "%d errors while writing supers",
+ 				      total_errors);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 
+ 	total_errors = 0;
+@@ -3925,7 +3925,7 @@ int write_all_supers(struct btrfs_fs_info *fs_info, int max_mirrors)
+ 		btrfs_handle_fs_error(fs_info, -EIO,
+ 				      "%d errors while writing supers",
+ 				      total_errors);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 	return 0;
+ }
+diff --git a/fs/btrfs/extent-tree.c b/fs/btrfs/extent-tree.c
+index 73ebe0c5fdbc..ca6fd333ddc2 100644
+--- a/fs/btrfs/extent-tree.c
++++ b/fs/btrfs/extent-tree.c
+@@ -1641,7 +1641,7 @@ static int run_delayed_tree_ref(struct btrfs_trans_handle *trans,
+ 	"btree block(%llu) has %d references rather than 1: action %d ref_root %llu parent %llu",
+ 			  node->bytenr, node->ref_mod, node->action, ref_root,
+ 			  parent);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 	if (node->action == BTRFS_ADD_DELAYED_REF && insert_reserved) {
+ 		BUG_ON(!extent_op || !extent_op->update_flags);
+@@ -4994,7 +4994,7 @@ static noinline int do_walk_down(struct btrfs_trans_handle *trans,
+ 
+ 	if (unlikely(wc->refs[level - 1] == 0)) {
+ 		btrfs_err(fs_info, "Missing references.");
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out_unlock;
+ 	}
+ 	*lookup_info = 0;
+@@ -5041,7 +5041,7 @@ static noinline int do_walk_down(struct btrfs_trans_handle *trans,
+ 			return PTR_ERR(next);
+ 		} else if (!extent_buffer_uptodate(next)) {
+ 			free_extent_buffer(next);
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 		btrfs_tree_lock(next);
+ 		btrfs_set_lock_blocking_write(next);
+@@ -5051,7 +5051,7 @@ static noinline int do_walk_down(struct btrfs_trans_handle *trans,
+ 	ASSERT(level == btrfs_header_level(next));
+ 	if (level != btrfs_header_level(next)) {
+ 		btrfs_err(root->fs_info, "mismatched level");
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out_unlock;
+ 	}
+ 	path->nodes[level] = next;
+@@ -5074,7 +5074,7 @@ static noinline int do_walk_down(struct btrfs_trans_handle *trans,
+ 			    btrfs_header_owner(path->nodes[level])) {
+ 				btrfs_err(root->fs_info,
+ 						"mismatched block owner");
+-				ret = -EIO;
++				{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 				goto out_unlock;
+ 			}
+ 			parent = 0;
+diff --git a/fs/btrfs/extent_io.c b/fs/btrfs/extent_io.c
+index 81e98a457130..9db1c3eaff23 100644
+--- a/fs/btrfs/extent_io.c
++++ b/fs/btrfs/extent_io.c
+@@ -2286,7 +2286,7 @@ int repair_io_failure(struct btrfs_fs_info *fs_info, u64 ino, u64 start,
+ 		if (ret) {
+ 			btrfs_bio_counter_dec(fs_info);
+ 			bio_put(bio);
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 		ASSERT(bbio->mirror_num == 1);
+ 	} else {
+@@ -2295,7 +2295,7 @@ int repair_io_failure(struct btrfs_fs_info *fs_info, u64 ino, u64 start,
+ 		if (ret) {
+ 			btrfs_bio_counter_dec(fs_info);
+ 			bio_put(bio);
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 		BUG_ON(mirror_num != bbio->mirror_num);
+ 	}
+@@ -2308,7 +2308,7 @@ int repair_io_failure(struct btrfs_fs_info *fs_info, u64 ino, u64 start,
+ 	    !test_bit(BTRFS_DEV_STATE_WRITEABLE, &dev->dev_state)) {
+ 		btrfs_bio_counter_dec(fs_info);
+ 		bio_put(bio);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 	bio_set_dev(bio, dev->bdev);
+ 	bio->bi_opf = REQ_OP_WRITE | REQ_SYNC;
+@@ -2319,7 +2319,7 @@ int repair_io_failure(struct btrfs_fs_info *fs_info, u64 ino, u64 start,
+ 		btrfs_bio_counter_dec(fs_info);
+ 		bio_put(bio);
+ 		btrfs_dev_stat_inc_and_print(dev, BTRFS_DEV_STAT_WRITE_ERRS);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 
+ 	btrfs_info_rl_in_rcu(fs_info,
+@@ -2490,6 +2490,7 @@ static struct io_failure_record *btrfs_get_io_failure_record(struct inode *inode
+ 	if (!em) {
+ 		read_unlock(&em_tree->lock);
+ 		kfree(failrec);
++		WARN_ON(-EIO == -EIO);
+ 		return ERR_PTR(-EIO);
+ 	}
+ 
+@@ -2500,6 +2501,7 @@ static struct io_failure_record *btrfs_get_io_failure_record(struct inode *inode
+ 	read_unlock(&em_tree->lock);
+ 	if (!em) {
+ 		kfree(failrec);
++		WARN_ON(-EIO == -EIO);
+ 		return ERR_PTR(-EIO);
+ 	}
+ 
+@@ -3909,7 +3911,7 @@ static noinline_for_stack int write_one_eb(struct extent_buffer *eb,
+ 				end_page_writeback(p);
+ 			if (atomic_sub_and_test(num_pages - i, &eb->io_pages))
+ 				end_extent_buffer_writeback(eb);
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			break;
+ 		}
+ 		offset += PAGE_SIZE;
+diff --git a/fs/btrfs/file.c b/fs/btrfs/file.c
+index ffa48ac98d1e..7c3fb691a532 100644
+--- a/fs/btrfs/file.c
++++ b/fs/btrfs/file.c
+@@ -1330,7 +1330,7 @@ static int prepare_uptodate_page(struct inode *inode,
+ 		lock_page(page);
+ 		if (!PageUptodate(page)) {
+ 			unlock_page(page);
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 		if (page->mapping != inode->i_mapping) {
+ 			unlock_page(page);
+diff --git a/fs/btrfs/free-space-cache.c b/fs/btrfs/free-space-cache.c
+index ba280707d5ec..75a3dfb83d0e 100644
+--- a/fs/btrfs/free-space-cache.c
++++ b/fs/btrfs/free-space-cache.c
+@@ -392,13 +392,13 @@ static int io_ctl_prepare_pages(struct btrfs_io_ctl *io_ctl, bool uptodate)
+ 				btrfs_err(BTRFS_I(inode)->root->fs_info,
+ 					  "free space cache page truncated");
+ 				io_ctl_drop_pages(io_ctl);
+-				return -EIO;
++				{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 			}
+ 			if (!PageUptodate(page)) {
+ 				btrfs_err(BTRFS_I(inode)->root->fs_info,
+ 					   "error reading free space cache");
+ 				io_ctl_drop_pages(io_ctl);
+-				return -EIO;
++				{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 			}
+ 		}
+ 	}
+@@ -454,7 +454,7 @@ static int io_ctl_check_generation(struct btrfs_io_ctl *io_ctl, u64 generation)
+ 			"space cache generation (%llu) does not match inode (%llu)",
+ 				cache_gen, generation);
+ 		io_ctl_unmap_page(io_ctl);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 	io_ctl->cur += sizeof(u64);
+ 	return 0;
+@@ -507,7 +507,7 @@ static int io_ctl_check_crc(struct btrfs_io_ctl *io_ctl, int index)
+ 		btrfs_err_rl(io_ctl->fs_info,
+ 			"csum mismatch on free space cache");
+ 		io_ctl_unmap_page(io_ctl);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 
+ 	return 0;
+@@ -1266,7 +1266,7 @@ static int __btrfs_write_out_cache(struct btrfs_root *root, struct inode *inode,
+ 	int must_iput = 0;
+ 
+ 	if (!i_size_read(inode))
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 
+ 	WARN_ON(io_ctl->pages);
+ 	ret = io_ctl_init(io_ctl, inode, 1);
+diff --git a/fs/btrfs/free-space-tree.c b/fs/btrfs/free-space-tree.c
+index 6cf2f7bb30c2..fa1e46235e43 100644
+--- a/fs/btrfs/free-space-tree.c
++++ b/fs/btrfs/free-space-tree.c
+@@ -124,12 +124,12 @@ static int btrfs_search_prev_slot(struct btrfs_trans_handle *trans,
+ 
+ 	if (ret == 0) {
+ 		ASSERT(0);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 
+ 	if (p->slots[0] == 0) {
+ 		ASSERT(0);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 	p->slots[0]--;
+ 
+@@ -277,7 +277,7 @@ int convert_free_space_to_bitmaps(struct btrfs_trans_handle *trans,
+ 			  block_group->start, extent_count,
+ 			  expected_extent_count);
+ 		ASSERT(0);
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+@@ -443,7 +443,7 @@ int convert_free_space_to_extents(struct btrfs_trans_handle *trans,
+ 			  block_group->start, extent_count,
+ 			  expected_extent_count);
+ 		ASSERT(0);
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+@@ -1466,7 +1466,7 @@ static int load_free_space_bitmaps(struct btrfs_caching_control *caching_ctl,
+ 			  block_group->start, extent_count,
+ 			  expected_extent_count);
+ 		ASSERT(0);
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+@@ -1528,7 +1528,7 @@ static int load_free_space_extents(struct btrfs_caching_control *caching_ctl,
+ 			  block_group->start, extent_count,
+ 			  expected_extent_count);
+ 		ASSERT(0);
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+diff --git a/fs/btrfs/inode.c b/fs/btrfs/inode.c
+index 4f26dae63b64..c26298140567 100644
+--- a/fs/btrfs/inode.c
++++ b/fs/btrfs/inode.c
+@@ -2656,7 +2656,7 @@ static int btrfs_finish_ordered_io(struct btrfs_ordered_extent *ordered_extent)
+ 	freespace_inode = btrfs_is_free_space_inode(BTRFS_I(inode));
+ 
+ 	if (test_bit(BTRFS_ORDERED_IOERR, &ordered_extent->flags)) {
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+@@ -2885,7 +2885,7 @@ static int check_data_csum(struct inode *inode, struct btrfs_io_bio *io_bio,
+ 	memset(kaddr + pgoff, 1, len);
+ 	flush_dcache_page(page);
+ 	kunmap_atomic(kaddr);
+-	return -EIO;
++	{ WARN_ON(-EIO == -EIO); return -EIO; }
+ }
+ 
+ /*
+@@ -4626,7 +4626,7 @@ int btrfs_truncate_block(struct inode *inode, loff_t from, loff_t len,
+ 			goto again;
+ 		}
+ 		if (!PageUptodate(page)) {
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			goto out_unlock;
+ 		}
+ 	}
+@@ -6778,7 +6778,7 @@ struct extent_map *btrfs_get_extent(struct btrfs_inode *inode,
+ 		btrfs_err(fs_info,
+ 			  "bad extent! em: [%llu %llu] passed [%llu %llu]",
+ 			  em->start, em->len, start, len);
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+diff --git a/fs/btrfs/ioctl.c b/fs/btrfs/ioctl.c
+index 040db0dfba26..b822435092c4 100644
+--- a/fs/btrfs/ioctl.c
++++ b/fs/btrfs/ioctl.c
+@@ -1352,7 +1352,7 @@ static int cluster_pages_for_defrag(struct inode *inode,
+ 			if (!PageUptodate(page)) {
+ 				unlock_page(page);
+ 				put_page(page);
+-				ret = -EIO;
++				{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 				break;
+ 			}
+ 		}
+diff --git a/fs/btrfs/lzo.c b/fs/btrfs/lzo.c
+index aa9cd11f4b78..8c12ba6e0038 100644
+--- a/fs/btrfs/lzo.c
++++ b/fs/btrfs/lzo.c
+@@ -166,7 +166,7 @@ int lzo_compress_pages(struct list_head *ws, struct address_space *mapping,
+ 		if (ret != LZO_E_OK) {
+ 			pr_debug("BTRFS: lzo in loop returned %d\n",
+ 			       ret);
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			goto out;
+ 		}
+ 
+@@ -378,7 +378,7 @@ int lzo_decompress_bio(struct list_head *ws, struct compressed_bio *cb)
+ 					break;
+ 
+ 				if (page_in_index + 1 >= total_pages_in) {
+-					ret = -EIO;
++					{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 					goto done;
+ 				}
+ 
+@@ -401,7 +401,7 @@ int lzo_decompress_bio(struct list_head *ws, struct compressed_bio *cb)
+ 			kunmap(pages_in[page_in_index - 1]);
+ 		if (ret != LZO_E_OK) {
+ 			pr_warn("BTRFS: decompress failed\n");
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			break;
+ 		}
+ 
+@@ -451,12 +451,12 @@ int lzo_decompress(struct list_head *ws, unsigned char *data_in,
+ 	ret = lzo1x_decompress_safe(data_in, in_len, workspace->buf, &out_len);
+ 	if (ret != LZO_E_OK) {
+ 		pr_warn("BTRFS: decompress failed!\n");
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+ 	if (out_len < start_byte) {
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+diff --git a/fs/btrfs/ordered-data.c b/fs/btrfs/ordered-data.c
+index 87bac9ecdf4c..cc8f04eaee55 100644
+--- a/fs/btrfs/ordered-data.c
++++ b/fs/btrfs/ordered-data.c
+@@ -726,7 +726,7 @@ int btrfs_wait_ordered_range(struct inode *inode, u64 start, u64 len)
+ 		 * the range to complete.
+ 		 */
+ 		if (test_bit(BTRFS_ORDERED_IOERR, &ordered->flags))
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		btrfs_put_ordered_extent(ordered);
+ 		if (end == 0 || end == start)
+ 			break;
+diff --git a/fs/btrfs/qgroup.c b/fs/btrfs/qgroup.c
+index 4bac32a274ce..0407eddb6773 100644
+--- a/fs/btrfs/qgroup.c
++++ b/fs/btrfs/qgroup.c
+@@ -1971,7 +1971,7 @@ static int qgroup_trace_extent_swap(struct btrfs_trans_handle* trans,
+ 				goto out;
+ 			} else if (!extent_buffer_uptodate(eb)) {
+ 				free_extent_buffer(eb);
+-				ret = -EIO;
++				{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 				goto out;
+ 			}
+ 
+@@ -2111,7 +2111,7 @@ static int qgroup_trace_new_subtree_blocks(struct btrfs_trans_handle* trans,
+ 			goto out;
+ 		} else if (!extent_buffer_uptodate(eb)) {
+ 			free_extent_buffer(eb);
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			goto out;
+ 		}
+ 
+@@ -2186,7 +2186,7 @@ static int qgroup_trace_subtree_swap(struct btrfs_trans_handle *trans,
+ 	}
+ 
+ 	if (!extent_buffer_uptodate(src_eb) || !extent_buffer_uptodate(dst_eb)) {
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+@@ -2286,7 +2286,7 @@ int btrfs_qgroup_trace_subtree(struct btrfs_trans_handle *trans,
+ 				goto out;
+ 			} else if (!extent_buffer_uptodate(eb)) {
+ 				free_extent_buffer(eb);
+-				ret = -EIO;
++				{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 				goto out;
+ 			}
+ 
+@@ -4276,7 +4276,7 @@ int btrfs_qgroup_trace_subtree_after_cow(struct btrfs_trans_handle *trans,
+ 		goto free_out;
+ 	}
+ 	if (!extent_buffer_uptodate(reloc_eb)) {
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto free_out;
+ 	}
+ 
+diff --git a/fs/btrfs/raid56.c b/fs/btrfs/raid56.c
+index 9d33bf0154ab..fb9982e6802a 100644
+--- a/fs/btrfs/raid56.c
++++ b/fs/btrfs/raid56.c
+@@ -1409,7 +1409,7 @@ static int fail_rbio_index(struct btrfs_raid_bio *rbio, int failed)
+ 		rbio->failb = failed;
+ 		atomic_inc(&rbio->error);
+ 	} else {
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 	}
+ out:
+ 	spin_unlock_irqrestore(&rbio->bio_list_lock, flags);
+@@ -1427,7 +1427,7 @@ static int fail_bio_stripe(struct btrfs_raid_bio *rbio,
+ 	int failed = find_bio_stripe(rbio, bio);
+ 
+ 	if (failed < 0)
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 
+ 	return fail_rbio_index(rbio, failed);
+ }
+@@ -1573,7 +1573,7 @@ static int raid56_rmw_stripe(struct btrfs_raid_bio *rbio)
+ 	while ((bio = bio_list_pop(&bio_list)))
+ 		bio_put(bio);
+ 
+-	return -EIO;
++	{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 
+ finish:
+ 	validate_rbio_for_rmw(rbio);
+@@ -2114,7 +2114,7 @@ static int __raid56_parity_recover(struct btrfs_raid_bio *rbio)
+ 	while ((bio = bio_list_pop(&bio_list)))
+ 		bio_put(bio);
+ 
+-	return -EIO;
++	{ WARN_ON(-EIO == -EIO); return -EIO; }
+ }
+ 
+ /*
+@@ -2155,7 +2155,7 @@ int raid56_parity_recover(struct btrfs_fs_info *fs_info, struct bio *bio,
+ 		if (generic_io)
+ 			btrfs_put_bbio(bbio);
+ 		kfree(rbio);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 
+ 	if (generic_io) {
+diff --git a/fs/btrfs/reada.c b/fs/btrfs/reada.c
+index d9a166eb344e..b5628e1763a2 100644
+--- a/fs/btrfs/reada.c
++++ b/fs/btrfs/reada.c
+@@ -664,7 +664,7 @@ static int reada_tree_block_flagged(struct btrfs_fs_info *fs_info, u64 bytenr,
+ 
+ 	if (test_bit(EXTENT_BUFFER_CORRUPT, &buf->bflags)) {
+ 		free_extent_buffer_stale(buf);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	} else if (extent_buffer_uptodate(buf)) {
+ 		*eb = buf;
+ 	} else {
+diff --git a/fs/btrfs/ref-verify.c b/fs/btrfs/ref-verify.c
+index 78693d3dd15b..68a216a554ca 100644
+--- a/fs/btrfs/ref-verify.c
++++ b/fs/btrfs/ref-verify.c
+@@ -572,7 +572,7 @@ static int walk_down_tree(struct btrfs_root *root, struct btrfs_path *path,
+ 				return PTR_ERR(eb);
+ 			if (!extent_buffer_uptodate(eb)) {
+ 				free_extent_buffer(eb);
+-				return -EIO;
++				{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 			}
+ 			btrfs_tree_read_lock(eb);
+ 			btrfs_set_lock_blocking_read(eb);
+diff --git a/fs/btrfs/relocation.c b/fs/btrfs/relocation.c
+index c21545c5b34b..43dc40e23128 100644
+--- a/fs/btrfs/relocation.c
++++ b/fs/btrfs/relocation.c
+@@ -1286,7 +1286,7 @@ int replace_path(struct btrfs_trans_handle *trans, struct reloc_control *rc,
+ 				ret = PTR_ERR(eb);
+ 				break;
+ 			} else if (!extent_buffer_uptodate(eb)) {
+-				ret = -EIO;
++				{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 				free_extent_buffer(eb);
+ 				break;
+ 			}
+@@ -1476,7 +1476,7 @@ int walk_down_reloc_tree(struct btrfs_root *root, struct btrfs_path *path,
+ 			return PTR_ERR(eb);
+ 		} else if (!extent_buffer_uptodate(eb)) {
+ 			free_extent_buffer(eb);
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 		BUG_ON(btrfs_header_level(eb) != i - 1);
+ 		path->nodes[i - 1] = eb;
+@@ -2470,7 +2470,7 @@ static int get_tree_block_key(struct btrfs_fs_info *fs_info,
+ 		return PTR_ERR(eb);
+ 	} else if (!extent_buffer_uptodate(eb)) {
+ 		free_extent_buffer(eb);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 	if (block->level == 0)
+ 		btrfs_item_key_to_cpu(eb, &block->key, 0);
+@@ -2766,7 +2766,7 @@ static int relocate_file_extent_cluster(struct inode *inode,
+ 							PAGE_SIZE, true);
+ 				btrfs_delalloc_release_extents(BTRFS_I(inode),
+ 							       PAGE_SIZE);
+-				ret = -EIO;
++				{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 				goto out;
+ 			}
+ 		}
+diff --git a/fs/btrfs/scrub.c b/fs/btrfs/scrub.c
+index 0392c556af60..5694db72a010 100644
+--- a/fs/btrfs/scrub.c
++++ b/fs/btrfs/scrub.c
+@@ -1304,7 +1304,7 @@ static int scrub_setup_recheck_block(struct scrub_block *original_sblock,
+ 		if (ret || !bbio || mapped_length < sublen) {
+ 			btrfs_put_bbio(bbio);
+ 			btrfs_bio_counter_dec(fs_info);
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 
+ 		recover = kzalloc(sizeof(struct scrub_recover), GFP_NOFS);
+@@ -1562,7 +1562,7 @@ static int scrub_repair_page_from_good_copy(struct scrub_block *sblock_bad,
+ 		if (!page_bad->dev->bdev) {
+ 			btrfs_warn_rl(fs_info,
+ 				"scrub_repair_page_from_good_copy(bdev == NULL) is unexpected");
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 
+ 		bio = btrfs_io_bio_alloc(1);
+@@ -1573,7 +1573,7 @@ static int scrub_repair_page_from_good_copy(struct scrub_block *sblock_bad,
+ 		ret = bio_add_page(bio, page_good->page, PAGE_SIZE, 0);
+ 		if (PAGE_SIZE != ret) {
+ 			bio_put(bio);
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 
+ 		if (btrfsic_submit_bio_wait(bio)) {
+@@ -1581,7 +1581,7 @@ static int scrub_repair_page_from_good_copy(struct scrub_block *sblock_bad,
+ 				BTRFS_DEV_STAT_WRITE_ERRS);
+ 			atomic64_inc(&fs_info->dev_replace.num_write_errors);
+ 			bio_put(bio);
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 		bio_put(bio);
+ 	}
+@@ -1673,7 +1673,7 @@ static int scrub_add_page_to_wr_bio(struct scrub_ctx *sctx,
+ 			bio_put(sbio->bio);
+ 			sbio->bio = NULL;
+ 			mutex_unlock(&sctx->wr_lock);
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 		scrub_wr_submit(sctx);
+ 		goto again;
+@@ -2020,7 +2020,7 @@ static int scrub_add_page_to_rd_bio(struct scrub_ctx *sctx,
+ 		if (sbio->page_count < 1) {
+ 			bio_put(sbio->bio);
+ 			sbio->bio = NULL;
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 		scrub_submit(sctx);
+ 		goto again;
+@@ -2903,7 +2903,7 @@ static noinline_for_stack int scrub_raid56_parity(struct scrub_ctx *sctx,
+ 					0);
+ 			if (!ret) {
+ 				if (!bbio || mapped_length < extent_len)
+-					ret = -EIO;
++					{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			}
+ 			if (ret) {
+ 				btrfs_put_bbio(bbio);
+@@ -3671,7 +3671,7 @@ int scrub_enumerate_chunks(struct scrub_ctx *sctx,
+ 			break;
+ 		if (sctx->is_dev_replace &&
+ 		    atomic64_read(&dev_replace->num_write_errors) > 0) {
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			break;
+ 		}
+ 		if (sctx->stat.malloc_errors > 0) {
+@@ -3885,7 +3885,7 @@ int btrfs_scrub_dev(struct btrfs_fs_info *fs_info, u64 devid, u64 start,
+ 	    test_bit(BTRFS_DEV_STATE_REPLACE_TGT, &dev->dev_state)) {
+ 		mutex_unlock(&fs_info->scrub_lock);
+ 		mutex_unlock(&fs_info->fs_devices->device_list_mutex);
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+diff --git a/fs/btrfs/send.c b/fs/btrfs/send.c
+index 9e5809118c34..c71e37c3c866 100644
+--- a/fs/btrfs/send.c
++++ b/fs/btrfs/send.c
+@@ -560,7 +560,7 @@ static int write_buf(struct file *filp, const void *buf, u32 len, loff_t *off)
+ 		if (ret < 0)
+ 			return ret;
+ 		if (ret == 0) {
+-			return -EIO;
++			{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 		}
+ 		pos += ret;
+ 	}
+@@ -1366,7 +1366,7 @@ static int find_extent_clone(struct send_ctx *sctx,
+ 	if (ret < 0)
+ 		goto out;
+ 	if (flags & BTRFS_EXTENT_FLAG_TREE_BLOCK) {
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+@@ -1439,7 +1439,7 @@ static int find_extent_clone(struct send_ctx *sctx,
+ 
+ 	if (!backref_ctx->found_itself) {
+ 		/* found a bug in backref code? */
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		btrfs_err(fs_info,
+ 			  "did not find backref in send_root. inode=%llu, offset=%llu, disk_byte=%llu found extent=%llu",
+ 			  ino, data_offset, disk_byte, found_key.objectid);
+@@ -1513,7 +1513,7 @@ static int read_symlink(struct btrfs_root *root,
+ 		btrfs_err(root->fs_info,
+ 			  "Found empty symlink inode %llu at root %llu",
+ 			  ino, root->root_key.objectid);
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+@@ -4996,7 +4996,7 @@ static int put_file_data(struct send_ctx *sctx, u64 offset, u32 len)
+ 			if (!PageUptodate(page)) {
+ 				unlock_page(page);
+ 				put_page(page);
+-				ret = -EIO;
++				{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 				break;
+ 			}
+ 		}
+@@ -6463,7 +6463,7 @@ static int changed_ref(struct send_ctx *sctx,
+ 
+ 	if (sctx->cur_ino != sctx->cmp_key->objectid) {
+ 		inconsistent_snapshot_error(sctx, result, "reference");
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 
+ 	if (!sctx->cur_inode_new_gen &&
+@@ -6491,7 +6491,7 @@ static int changed_xattr(struct send_ctx *sctx,
+ 
+ 	if (sctx->cur_ino != sctx->cmp_key->objectid) {
+ 		inconsistent_snapshot_error(sctx, result, "xattr");
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 
+ 	if (!sctx->cur_inode_new_gen && !sctx->cur_inode_deleted) {
+diff --git a/fs/btrfs/tree-log.c b/fs/btrfs/tree-log.c
+index 300951088a11..de81edd0e622 100644
+--- a/fs/btrfs/tree-log.c
++++ b/fs/btrfs/tree-log.c
+@@ -612,7 +612,7 @@ static noinline int replay_one_extent(struct btrfs_trans_handle *trans,
+ 
+ 	inode = read_one_inode(root, key->objectid);
+ 	if (!inode) {
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+@@ -871,7 +871,7 @@ static noinline int drop_one_dir_item(struct btrfs_trans_handle *trans,
+ 
+ 	inode = read_one_inode(root, location.objectid);
+ 	if (!inode) {
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+@@ -1445,7 +1445,7 @@ static noinline int add_inode_ref(struct btrfs_trans_handle *trans,
+ 
+ 	inode = read_one_inode(root, inode_objectid);
+ 	if (!inode) {
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+@@ -1770,7 +1770,7 @@ static noinline int fixup_inode_link_counts(struct btrfs_trans_handle *trans,
+ 		btrfs_release_path(path);
+ 		inode = read_one_inode(root, key.offset);
+ 		if (!inode) {
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			break;
+ 		}
+ 
+@@ -1807,7 +1807,7 @@ static noinline int link_to_fixup_dir(struct btrfs_trans_handle *trans,
+ 
+ 	inode = read_one_inode(root, objectid);
+ 	if (!inode)
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 
+ 	key.objectid = BTRFS_TREE_LOG_FIXUP_OBJECTID;
+ 	key.type = BTRFS_ORPHAN_ITEM_KEY;
+@@ -1852,7 +1852,7 @@ static noinline int insert_one_name(struct btrfs_trans_handle *trans,
+ 	dir = read_one_inode(root, dirid);
+ 	if (!dir) {
+ 		iput(inode);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 
+ 	ret = btrfs_add_link(trans, BTRFS_I(dir), BTRFS_I(inode), name,
+@@ -1902,7 +1902,7 @@ static noinline int replay_one_name(struct btrfs_trans_handle *trans,
+ 
+ 	dir = read_one_inode(root, key->objectid);
+ 	if (!dir)
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 
+ 	name_len = btrfs_dir_name_len(eb, di);
+ 	name = kmalloc(name_len, GFP_NOFS);
+@@ -2247,7 +2247,7 @@ static noinline int check_item_in_log(struct btrfs_trans_handle *trans,
+ 			inode = read_one_inode(root, location.objectid);
+ 			if (!inode) {
+ 				kfree(name);
+-				return -EIO;
++				{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 			}
+ 
+ 			ret = link_to_fixup_dir(trans, root,
+@@ -2590,7 +2590,7 @@ static int replay_one_buffer(struct btrfs_root *log, struct extent_buffer *eb,
+ 
+ 				inode = read_one_inode(root, key.objectid);
+ 				if (!inode) {
+-					ret = -EIO;
++					{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 					break;
+ 				}
+ 				from = ALIGN(i_size_read(inode),
+diff --git a/fs/btrfs/volumes.c b/fs/btrfs/volumes.c
+index f9ae3850526c..c086a9e74860 100644
+--- a/fs/btrfs/volumes.c
++++ b/fs/btrfs/volumes.c
+@@ -2864,7 +2864,7 @@ static int btrfs_del_sys_chunk(struct btrfs_fs_info *fs_info, u64 chunk_offset)
+ 			num_stripes = btrfs_stack_chunk_num_stripes(chunk);
+ 			len += btrfs_chunk_item_size(num_stripes);
+ 		} else {
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			break;
+ 		}
+ 		if (key.objectid == BTRFS_FIRST_CHUNK_TREE_OBJECTID &&
+@@ -5765,7 +5765,7 @@ static int get_extra_mirror_from_replace(struct btrfs_fs_info *fs_info,
+ 		 * cursor
+ 		 */
+ 		btrfs_put_bbio(bbio);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 
+ 	/*
+@@ -5794,7 +5794,7 @@ static int get_extra_mirror_from_replace(struct btrfs_fs_info *fs_info,
+ 
+ 	ASSERT(found);
+ 	if (!found)
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 
+ 	*mirror_num = index_srcdev + 1;
+ 	*physical = physical_of_found;
+@@ -6936,7 +6936,7 @@ int btrfs_read_sys_array(struct btrfs_fs_info *fs_info)
+ 			btrfs_err(fs_info,
+ 			    "unexpected item type %u in sys_array at offset %u",
+ 				  (u32)key.type, cur_offset);
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			break;
+ 		}
+ 
+@@ -6954,7 +6954,7 @@ int btrfs_read_sys_array(struct btrfs_fs_info *fs_info)
+ 			btrfs_err(fs_info,
+ 			"invalid number of stripes %u in sys_array at offset %u",
+ 				  num_stripes, cur_offset);
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			break;
+ 		}
+ 
+@@ -6963,7 +6963,7 @@ int btrfs_read_sys_array(struct btrfs_fs_info *fs_info)
+ 			btrfs_err(fs_info,
+ 			"invalid chunk type %llu in sys_array at offset %u",
+ 				  type, cur_offset);
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			break;
+ 		}
+ 
+@@ -6988,7 +6988,7 @@ int btrfs_read_sys_array(struct btrfs_fs_info *fs_info)
+ 			len, cur_offset);
+ 	clear_extent_buffer_uptodate(sb);
+ 	free_extent_buffer_stale(sb);
+-	return -EIO;
++	{ WARN_ON(-EIO == -EIO); return -EIO; }
+ }
+ 
+ /*
+diff --git a/fs/btrfs/zlib.c b/fs/btrfs/zlib.c
+index 05615a1099db..f1fe2dceed92 100644
+--- a/fs/btrfs/zlib.c
++++ b/fs/btrfs/zlib.c
+@@ -114,7 +114,7 @@ int zlib_compress_pages(struct list_head *ws, struct address_space *mapping,
+ 
+ 	if (Z_OK != zlib_deflateInit(&workspace->strm, workspace->level)) {
+ 		pr_warn("BTRFS: deflateInit failed\n");
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+@@ -180,7 +180,7 @@ int zlib_compress_pages(struct list_head *ws, struct address_space *mapping,
+ 			pr_debug("BTRFS: deflate in loop returned %d\n",
+ 			       ret);
+ 			zlib_deflateEnd(&workspace->strm);
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			goto out;
+ 		}
+ 
+@@ -230,7 +230,7 @@ int zlib_compress_pages(struct list_head *ws, struct address_space *mapping,
+ 			break;
+ 		if (ret != Z_OK && ret != Z_BUF_ERROR) {
+ 			zlib_deflateEnd(&workspace->strm);
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			goto out;
+ 		} else if (workspace->strm.avail_out == 0) {
+ 			/* get another page for the stream end */
+@@ -312,7 +312,7 @@ int zlib_decompress_bio(struct list_head *ws, struct compressed_bio *cb)
+ 	if (Z_OK != zlib_inflateInit2(&workspace->strm, wbits)) {
+ 		pr_warn("BTRFS: inflateInit failed\n");
+ 		kunmap(pages_in[page_in_index]);
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 	while (workspace->strm.total_in < srclen) {
+ 		ret = zlib_inflate(&workspace->strm, Z_NO_FLUSH);
+@@ -353,7 +353,7 @@ int zlib_decompress_bio(struct list_head *ws, struct compressed_bio *cb)
+ 		}
+ 	}
+ 	if (ret != Z_STREAM_END)
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 	else
+ 		ret = 0;
+ done:
+@@ -400,7 +400,7 @@ int zlib_decompress(struct list_head *ws, unsigned char *data_in,
+ 
+ 	if (Z_OK != zlib_inflateInit2(&workspace->strm, wbits)) {
+ 		pr_warn("BTRFS: inflateInit failed\n");
+-		return -EIO;
++		{ WARN_ON(-EIO == -EIO); return -EIO; }
+ 	}
+ 
+ 	while (bytes_left > 0) {
+@@ -416,7 +416,7 @@ int zlib_decompress(struct list_head *ws, unsigned char *data_in,
+ 		total_out = workspace->strm.total_out;
+ 
+ 		if (total_out == buf_start) {
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			break;
+ 		}
+ 
+@@ -444,7 +444,7 @@ int zlib_decompress(struct list_head *ws, unsigned char *data_in,
+ 	}
+ 
+ 	if (ret != Z_STREAM_END && bytes_left != 0)
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 	else
+ 		ret = 0;
+ 
+diff --git a/fs/btrfs/zstd.c b/fs/btrfs/zstd.c
+index 9a4871636c6c..c90cb5df952f 100644
+--- a/fs/btrfs/zstd.c
++++ b/fs/btrfs/zstd.c
+@@ -393,7 +393,7 @@ int zstd_compress_pages(struct list_head *ws, struct address_space *mapping,
+ 			workspace->size);
+ 	if (!stream) {
+ 		pr_warn("BTRFS: ZSTD_initCStream failed\n");
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto out;
+ 	}
+ 
+@@ -423,7 +423,7 @@ int zstd_compress_pages(struct list_head *ws, struct address_space *mapping,
+ 		if (ZSTD_isError(ret2)) {
+ 			pr_debug("BTRFS: ZSTD_compressStream returned %d\n",
+ 					ZSTD_getErrorCode(ret2));
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			goto out;
+ 		}
+ 
+@@ -491,7 +491,7 @@ int zstd_compress_pages(struct list_head *ws, struct address_space *mapping,
+ 		if (ZSTD_isError(ret2)) {
+ 			pr_debug("BTRFS: ZSTD_endStream returned %d\n",
+ 					ZSTD_getErrorCode(ret2));
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			goto out;
+ 		}
+ 		if (ret2 == 0) {
+@@ -561,7 +561,7 @@ int zstd_decompress_bio(struct list_head *ws, struct compressed_bio *cb)
+ 			ZSTD_BTRFS_MAX_INPUT, workspace->mem, workspace->size);
+ 	if (!stream) {
+ 		pr_debug("BTRFS: ZSTD_initDStream failed\n");
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto done;
+ 	}
+ 
+@@ -581,7 +581,7 @@ int zstd_decompress_bio(struct list_head *ws, struct compressed_bio *cb)
+ 		if (ZSTD_isError(ret2)) {
+ 			pr_debug("BTRFS: ZSTD_decompressStream returned %d\n",
+ 					ZSTD_getErrorCode(ret2));
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			goto done;
+ 		}
+ 		buf_start = total_out;
+@@ -604,7 +604,7 @@ int zstd_decompress_bio(struct list_head *ws, struct compressed_bio *cb)
+ 			kunmap(pages_in[page_in_index++]);
+ 			if (page_in_index >= total_pages_in) {
+ 				workspace->in_buf.src = NULL;
+-				ret = -EIO;
++				{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 				goto done;
+ 			}
+ 			srclen -= PAGE_SIZE;
+@@ -637,7 +637,7 @@ int zstd_decompress(struct list_head *ws, unsigned char *data_in,
+ 			ZSTD_BTRFS_MAX_INPUT, workspace->mem, workspace->size);
+ 	if (!stream) {
+ 		pr_warn("BTRFS: ZSTD_initDStream failed\n");
+-		ret = -EIO;
++		{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 		goto finish;
+ 	}
+ 
+@@ -661,7 +661,7 @@ int zstd_decompress(struct list_head *ws, unsigned char *data_in,
+ 		/* Check if the frame is over and we still need more input */
+ 		if (ret2 == 0) {
+ 			pr_debug("BTRFS: ZSTD_decompressStream ended early\n");
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			goto finish;
+ 		}
+ 		ret2 = ZSTD_decompressStream(stream, &workspace->out_buf,
+@@ -669,7 +669,7 @@ int zstd_decompress(struct list_head *ws, unsigned char *data_in,
+ 		if (ZSTD_isError(ret2)) {
+ 			pr_debug("BTRFS: ZSTD_decompressStream returned %d\n",
+ 					ZSTD_getErrorCode(ret2));
+-			ret = -EIO;
++			{ ret = -EIO; WARN_ON(ret == -EIO); }
+ 			goto finish;
+ 		}
+ 

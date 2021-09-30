@@ -1,0 +1,58 @@
+--- a/fs/btrfs/extent_io.c	2020-12-14 15:37:58.981904091 +0100
++++ b/fs/btrfs/extent_io.c	2020-12-14 15:39:20.168718870 +0100
+@@ -4660,6 +4660,9 @@
+ 	return ret;
+ }
+ 
++#define FIEMAP_FLAG_PHYSICAL 8
++#define FIEMAP_FLAG_NOSHARED 16
++
+ int extent_fiemap(struct btrfs_inode *inode, struct fiemap_extent_info *fieinfo,
+ 		  u64 start, u64 len)
+ {
+@@ -4812,14 +4815,16 @@
+ 			u64 bytenr = em->block_start -
+ 				(em->start - em->orig_start);
+ 
+-			map_len = em_len;
+-			ret = btrfs_map_block(root->fs_info, READ, disko,
++			if(fieinfo->fi_flags & FIEMAP_FLAG_PHYSICAL) {
++				map_len = em_len;
++				ret = btrfs_map_block(root->fs_info, READ, disko,
+ 							&map_len, &bbio, 0);
+ 
+-			if(!ret && bbio) {
+-				disko = bbio->stripes[0].physical;
+-				btrfs_put_bbio(bbio);
+-				flags |= FIEMAP_EXTENT_MAPPED;
++				if(!ret && bbio) {
++					disko = bbio->stripes[0].physical;
++					btrfs_put_bbio(bbio);
++					flags |= FIEMAP_EXTENT_MAPPED;
++				}
+ 			}
+ 			
+ 			/*
+@@ -4829,13 +4834,15 @@
+ 			 * then we're just getting a count and we can skip the
+ 			 * lookup stuff.
+ 			 */
+-			ret = btrfs_check_shared(root, btrfs_ino(inode),
+-						 bytenr, roots, tmp_ulist);
+-			if (ret < 0)
+-				goto out_free;
+-			if (ret)
+-				flags |= FIEMAP_EXTENT_SHARED;
+-			ret = 0;
++			if(!(fieinfo->fi_flags & FIEMAP_FLAG_NOSHARED)) {
++				ret = btrfs_check_shared(root, btrfs_ino(inode),
++							 bytenr, roots, tmp_ulist);
++				if (ret < 0)
++					goto out_free;
++				if (ret)
++					flags |= FIEMAP_EXTENT_SHARED;
++				ret = 0;
++			}
+ 		}
+ 		if (test_bit(EXTENT_FLAG_COMPRESSED, &em->flags))
+ 			flags |= FIEMAP_EXTENT_ENCODED;

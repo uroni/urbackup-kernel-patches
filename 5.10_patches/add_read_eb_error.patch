@@ -1,0 +1,37 @@
+diff --git a/fs/btrfs/extent_io.c b/fs/btrfs/extent_io.c
+index 9e81d25dea70..fdcfcd051a12 100644
+--- a/fs/btrfs/extent_io.c
++++ b/fs/btrfs/extent_io.c
+@@ -3045,6 +3045,15 @@ static void end_bio_extent_readpage(struct bio *bio)
+ 		if (likely(uptodate))
+ 			goto readpage_ok;
+ 
++		if(!is_data_inode(inode)) {
++			struct extent_buffer *eb;
++			eb = (struct extent_buffer *)page->private;
++			btrfs_err_rl(fs_info, 
++				"metadata read error, page=%llu eb=%llu bio_status=%d"
++				" ret=%d", page_offset(page), eb->start,
++				bio->bi_status, ret);
++		}
++
+ 		if (is_data_inode(inode)) {
+ 			/*
+ 			 * btrfs_submit_read_repair() will handle all the good
+@@ -6505,8 +6514,15 @@ int read_extent_buffer_pages(struct extent_buffer *eb, int wait, int mirror_num)
+ 	for (i = 0; i < num_pages; i++) {
+ 		page = eb->pages[i];
+ 		wait_on_page_locked(page);
+-		if (!PageUptodate(page))
++		if (!PageUptodate(page)) {
++			btrfs_err_rl(eb->fs_info,
++		                "error reading extent buffer "
++				"start %llu len %lu PageError %d",
++                	        eb->start, eb->len,
++				PageError(page) ? 1 : 0);
++			WARN_ON(-EIO == -EIO);
+ 			ret = -EIO;
++		}
+ 	}
+ 
+ 	return ret;

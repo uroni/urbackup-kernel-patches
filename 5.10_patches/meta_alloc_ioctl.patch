@@ -1,0 +1,31 @@
+--- linux/fs/btrfs/ioctl.c	2020-05-15 13:15:16.015421221 +0200
++++ linux/fs/btrfs/ioctl.c	2020-05-15 13:21:52.473122694 +0200
+@@ -5442,6 +5442,8 @@
+ 	return ret;
+ }
+ 
++#define BTRFS_IOC_META_ALLOC  _IO(BTRFS_IOCTL_MAGIC, 120)
++
+ long btrfs_ioctl(struct file *file, unsigned int
+ 		cmd, unsigned long arg)
+ {
+@@ -5588,6 +5590,19 @@
+ 		return btrfs_ioctl_get_subvol_rootref(file, argp);
+ 	case BTRFS_IOC_INO_LOOKUP_USER:
+ 		return btrfs_ioctl_ino_lookup_user(file, argp);
++	case BTRFS_IOC_META_ALLOC: {
++			struct btrfs_trans_handle *trans;
++			int ret;
++
++			trans =	btrfs_join_transaction(fs_info->tree_root);
++			if (IS_ERR(trans))
++				return PTR_ERR(trans);
++
++			ret = btrfs_force_chunk_alloc(trans,
++							BTRFS_BLOCK_GROUP_METADATA);
++			btrfs_end_transaction(trans);
++			return ret;
++		}
+ 	}
+ 
+ 	return -ENOTTY;

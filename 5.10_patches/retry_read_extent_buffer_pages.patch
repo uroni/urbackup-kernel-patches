@@ -1,0 +1,21 @@
+--- linux-5.10.47/fs/btrfs/disk-io.c.orig	2021-07-02 18:33:17.021053040 +0200
++++ linux-5.10.47/fs/btrfs/disk-io.c	2021-07-02 18:35:17.553102340 +0200
+@@ -402,6 +402,7 @@
+ 	int num_copies = 0;
+ 	int mirror_num = 0;
+ 	int failed_mirror = 0;
++	int tries = 2;
+ 
+ 	io_tree = &BTRFS_I(fs_info->btree_inode)->io_tree;
+ 	while (1) {
+@@ -420,6 +421,10 @@
+ 
+ 		num_copies = btrfs_num_copies(fs_info,
+ 					      eb->start, eb->len);
++
++		if (num_copies == 1 && tries-->0)
++			continue;
++
+ 		if (num_copies == 1)
+ 			break;
+ 

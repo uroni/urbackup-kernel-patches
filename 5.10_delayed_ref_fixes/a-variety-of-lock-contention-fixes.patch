@@ -1,0 +1,1164 @@
+From patchwork Fri Dec 18 19:24:19 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Josef Bacik <josef@toxicpanda.com>
+X-Patchwork-Id: 11982837
+Return-Path: <linux-btrfs-owner@kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+X-Spam-Level: 
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F2D8CC2BBD5
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:18 +0000 (UTC)
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by mail.kernel.org (Postfix) with ESMTP id D093523B84
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:18 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S1733077AbgLRTZN (ORCPT <rfc822;linux-btrfs@archiver.kernel.org>);
+        Fri, 18 Dec 2020 14:25:13 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49016 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725846AbgLRTZL (ORCPT
+        <rfc822;linux-btrfs@vger.kernel.org>);
+        Fri, 18 Dec 2020 14:25:11 -0500
+Received: from mail-qk1-x732.google.com (mail-qk1-x732.google.com
+ [IPv6:2607:f8b0:4864:20::732])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 10EF4C0617A7
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:31 -0800 (PST)
+Received: by mail-qk1-x732.google.com with SMTP id 143so3022725qke.10
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:31 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=toxicpanda-com.20150623.gappssmtp.com; s=20150623;
+        h=from:to:cc:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=+4cGrI/kuB/wlw/etjMUVBc2/pxhAu2KFAHUybSr4Hg=;
+        b=x6oL4rSMnr5YVeoxQ8/LMzOz57iPVW6cidOPQDrZZ9CS6cq5w0Qlb2jc6mYAYEcT0F
+         qnS2Y/OU2EXyU2tMQ7EbrAGO8rPPqMYdQr9GMUf6trVnPf2dxCzJNWHG8JDK87NjhxGX
+         M4sAV6XSpsFvnPWq7vAGUpm8/NNxD4N1z3PRzGAZCBq0c6C8qQprE/J9dQluyqLiLe0S
+         nKSQJX6iaFsBQeboaHqb2Vr38/TqoO3LF0swhDUUKSH4ZokMShzFy/Xle3q5lAL/CS/b
+         igl2URv0hoRrtn6a1jZ+Awz9ZYempuvN70oMbYuH9iCCwrC0mPAu3+TNv+lApa12wJAl
+         vCzQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=+4cGrI/kuB/wlw/etjMUVBc2/pxhAu2KFAHUybSr4Hg=;
+        b=Lgl8RALpKwWZk+v6zGCTk6tUGkGRJ+5jUVGGwdzviPdLEN3rVr5HD5bBvSEf5La3CJ
+         WNESj3owRRQX3tn4Kv/Dney1rDubtKgCZ0bVubpR56OAaJsaZNqURGdkAgsWgzpt8Ep7
+         OWLjw5t96W3QivHvDKriaayqiklVyMN2ajdzZbM4Dp7oKQxCeJshyDRNV5KXWkKI0baS
+         ZTdZa/ZpjmchjcYMtalo6ZOKdc3HJrNhnwqWWloxqOoLOPAWrP0CGUNOucIbdk8e32lE
+         f4UNZftwfl4StlW4qzLlQZL5isuPrX+pu3af8y48lhW6laANKu1TjZmxWnselFHVfCAZ
+         Q2OQ==
+X-Gm-Message-State: AOAM532MXKU33jYkkGRKdYSugBPCpQfZwQgnOo1DGEzqVb/Upef+Usxe
+        u9xjb/lE32Yo3phy411jWB1QeK+zgc2RMbYY
+X-Google-Smtp-Source: 
+ ABdhPJy4Q+qxu0d+EY78A4CgZEgH8lS7QIsHs3g49RWbVyFyGSYv3qGg9Q+0bqTGFRJXURFcMkcJXg==
+X-Received: by 2002:a05:620a:625:: with SMTP id
+ 5mr6212072qkv.498.1608319469988;
+        Fri, 18 Dec 2020 11:24:29 -0800 (PST)
+Received: from localhost (cpe-174-109-172-136.nc.res.rr.com.
+ [174.109.172.136])
+        by smtp.gmail.com with ESMTPSA id 1sm6411606qki.50.2020.12.18.11.24.29
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 18 Dec 2020 11:24:29 -0800 (PST)
+From: Josef Bacik <josef@toxicpanda.com>
+To: linux-btrfs@vger.kernel.org, kernel-team@fb.com
+Cc: Nikolay Borisov <nborisov@suse.com>
+Subject: [PATCH v5 1/8] btrfs: do not block on deleted bgs mutex in the
+ cleaner
+Date: Fri, 18 Dec 2020 14:24:19 -0500
+Message-Id: 
+ <0c1995f8b35b44ceb0043ab2303b9e02a5517a46.1608319304.git.josef@toxicpanda.com>
+X-Mailer: git-send-email 2.26.2
+In-Reply-To: <cover.1608319304.git.josef@toxicpanda.com>
+References: <cover.1608319304.git.josef@toxicpanda.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-btrfs.vger.kernel.org>
+X-Mailing-List: linux-btrfs@vger.kernel.org
+
+While running some stress tests I started getting hung task messages.
+This is because the delete unused bg's code has to take the
+delete_unused_bgs_mutex to do it's work, which is taken by balance to
+make sure we don't delete block groups while we're balancing.
+
+The problem is a balance can take a while, and so we were getting hung
+task warnings.  We don't need to block and run these things, and the
+cleaner is needed to do other work, so trylock on this mutex and just
+bail if we can't acquire it right away.
+
+Reviewed-by: Nikolay Borisov <nborisov@suse.com>
+Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+---
+ fs/btrfs/block-group.c | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/fs/btrfs/block-group.c b/fs/btrfs/block-group.c
+index 52f2198d44c9..f61e275bd792 100644
+--- a/fs/btrfs/block-group.c
++++ b/fs/btrfs/block-group.c
+@@ -1254,6 +1254,13 @@ void btrfs_delete_unused_bgs(struct btrfs_fs_info *fs_info)
+ 	if (!test_bit(BTRFS_FS_OPEN, &fs_info->flags))
+ 		return;
+ 
++	/*
++	 * Long running balances can keep us blocked here for eternity, so
++	 * simply skip deletion if we're unable to get the mutex.
++	 */
++	if (!mutex_trylock(&fs_info->delete_unused_bgs_mutex))
++		return;
++
+ 	spin_lock(&fs_info->unused_bgs_lock);
+ 	while (!list_empty(&fs_info->unused_bgs)) {
+ 		int trimming;
+@@ -1273,8 +1280,6 @@ void btrfs_delete_unused_bgs(struct btrfs_fs_info *fs_info)
+ 
+ 		btrfs_discard_cancel_work(&fs_info->discard_ctl, block_group);
+ 
+-		mutex_lock(&fs_info->delete_unused_bgs_mutex);
+-
+ 		/* Don't want to race with allocators so take the groups_sem */
+ 		down_write(&space_info->groups_sem);
+ 
+@@ -1420,11 +1425,11 @@ void btrfs_delete_unused_bgs(struct btrfs_fs_info *fs_info)
+ end_trans:
+ 		btrfs_end_transaction(trans);
+ next:
+-		mutex_unlock(&fs_info->delete_unused_bgs_mutex);
+ 		btrfs_put_block_group(block_group);
+ 		spin_lock(&fs_info->unused_bgs_lock);
+ 	}
+ 	spin_unlock(&fs_info->unused_bgs_lock);
++	mutex_unlock(&fs_info->delete_unused_bgs_mutex);
+ 	return;
+ 
+ flip_async:
+
+From patchwork Fri Dec 18 19:24:20 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Josef Bacik <josef@toxicpanda.com>
+X-Patchwork-Id: 11982835
+Return-Path: <linux-btrfs-owner@kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+X-Spam-Level: 
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6E9EDC2D0E4
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:17 +0000 (UTC)
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by mail.kernel.org (Postfix) with ESMTP id 49BBC23B84
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:17 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S1733102AbgLRTZP (ORCPT <rfc822;linux-btrfs@archiver.kernel.org>);
+        Fri, 18 Dec 2020 14:25:15 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49024 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1732799AbgLRTZN (ORCPT
+        <rfc822;linux-btrfs@vger.kernel.org>);
+        Fri, 18 Dec 2020 14:25:13 -0500
+Received: from mail-qk1-x72e.google.com (mail-qk1-x72e.google.com
+ [IPv6:2607:f8b0:4864:20::72e])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CE351C06138C
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:32 -0800 (PST)
+Received: by mail-qk1-x72e.google.com with SMTP id 19so3045784qkm.8
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:32 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=toxicpanda-com.20150623.gappssmtp.com; s=20150623;
+        h=from:to:cc:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=f0i7UcDlMhrQzsDs99QH8S1W6OSPcU/bY7DVRv5GcPQ=;
+        b=WwciSwZ92dTBE+8I5PSX6JvU1DW9zckpNPntR5RCTHxwH0pdwjPG8//kbK3gSYcjJS
+         BueAyuzNXpNMOL13GPYup7/DRKtfMXMjzJ5rqhQlcrLyZibbbogxlDIn+sFGF1s2/Nru
+         THbKn7A0FS01FzT3t8Xn27XnbFJKHAU1Wo+k0pzATrJuG3Xp0DNw+LiG9I0LL64Q7kl3
+         MUQgaDB0IDw1y8ORR+7roKQXliVOe09uM8B03JCpbSSq9fEtNotw3of/fB1aH/Hblxiz
+         3dv3Aw2gth2cgXUG4bkUxlLu4vkX0oFgtP33r9ipBW/ztyEGE9Jk5JGlj8bRIx36oItA
+         2D4g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=f0i7UcDlMhrQzsDs99QH8S1W6OSPcU/bY7DVRv5GcPQ=;
+        b=mpReJc93QSn8SXdEzeDO3JYlVkcW+3GeLEVnk/cL2J4HuNEuuFM3fd71s6Uym3HdQz
+         zzBXJZyVRK2kGkjoKpfco+r2YLSl8kZyrPPbuGQJRKGMeUaug+bZoQsGPXWK/sth0bL7
+         i8WQ2Wo0CWqZd42fY85HZd6sSUuzoXNKDHkdP/o5Itz2ikqUkx85GsFNfIulsaoMfqp3
+         4Gjqv80Bb9/pGV7kKdY/zx0aOA46t+Tt6SnU1PdR85fUp3gtb5IThY4hSw1Ci+l26BLe
+         znvBTvJ+2bzf/hSWZkcIrIic+hTF6AWsMwrQPv/IURdub2AF2mHpLF3rEWNETpY0QiXr
+         0pRw==
+X-Gm-Message-State: AOAM533mI7Fz/wJ0Kbrs7pN/W4h2CemmxWC5KjBfiKYjcZjmLUz/c03y
+        mEkX2pnVqO1Z2KLB3bZzaBkJUDEsljHVF8Sk
+X-Google-Smtp-Source: 
+ ABdhPJwo1J98W8UV94Obg9hhRHvjASJyT/c1lG4PfTUrOVwdXSqYl/LGgX9Oos/ST5E51dml+eZa3Q==
+X-Received: by 2002:a37:809:: with SMTP id 9mr6420198qki.156.1608319471655;
+        Fri, 18 Dec 2020 11:24:31 -0800 (PST)
+Received: from localhost (cpe-174-109-172-136.nc.res.rr.com.
+ [174.109.172.136])
+        by smtp.gmail.com with ESMTPSA id
+ l1sm5913527qtb.42.2020.12.18.11.24.30
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 18 Dec 2020 11:24:31 -0800 (PST)
+From: Josef Bacik <josef@toxicpanda.com>
+To: linux-btrfs@vger.kernel.org, kernel-team@fb.com
+Cc: Nikolay Borisov <nborisov@suse.com>
+Subject: [PATCH v5 2/8] btrfs: only let one thread pre-flush delayed refs in
+ commit
+Date: Fri, 18 Dec 2020 14:24:20 -0500
+Message-Id: 
+ <9e47b11bdfe5b4905fdaa81e952de2e2466c6335.1608319304.git.josef@toxicpanda.com>
+X-Mailer: git-send-email 2.26.2
+In-Reply-To: <cover.1608319304.git.josef@toxicpanda.com>
+References: <cover.1608319304.git.josef@toxicpanda.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-btrfs.vger.kernel.org>
+X-Mailing-List: linux-btrfs@vger.kernel.org
+
+I've been running a stress test that runs 20 workers in their own
+subvolume, which are running an fsstress instance with 4 threads per
+worker, which is 80 total fsstress threads.  In addition to this I'm
+running balance in the background as well as creating and deleting
+snapshots.  This test takes around 12 hours to run normally, going
+slower and slower as the test goes on.
+
+The reason for this is because fsstress is running fsync sometimes, and
+because we're messing with block groups we often fall through to
+btrfs_commit_transaction, so will often have 20-30 threads all calling
+btrfs_commit_transaction at the same time.
+
+These all get stuck contending on the extent tree while they try to run
+delayed refs during the initial part of the commit.
+
+This is suboptimal, really because the extent tree is a single point of
+failure we only want one thread acting on that tree at once to reduce
+lock contention.  Fix this by making the flushing mechanism a bit
+operation, to make it easy to use test_and_set_bit() in order to make
+sure only one task does this initial flush.
+
+Once we're into the transaction commit we only have one thread doing
+delayed ref running, it's just this initial pre-flush that is
+problematic.  With this patch my stress test takes around 90 minutes to
+run, instead of 12 hours.
+
+Reviewed-by: Nikolay Borisov <nborisov@suse.com>
+Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+---
+ fs/btrfs/delayed-ref.h | 12 ++++++------
+ fs/btrfs/transaction.c | 33 ++++++++++++++++-----------------
+ 2 files changed, 22 insertions(+), 23 deletions(-)
+
+diff --git a/fs/btrfs/delayed-ref.h b/fs/btrfs/delayed-ref.h
+index 1c977e6d45dc..6e414785b56f 100644
+--- a/fs/btrfs/delayed-ref.h
++++ b/fs/btrfs/delayed-ref.h
+@@ -135,6 +135,11 @@ struct btrfs_delayed_data_ref {
+ 	u64 offset;
+ };
+ 
++enum btrfs_delayed_ref_flags {
++	/* Used to indicate that we are flushing delayed refs for the commit. */
++	BTRFS_DELAYED_REFS_FLUSHING,
++};
++
+ struct btrfs_delayed_ref_root {
+ 	/* head ref rbtree */
+ 	struct rb_root_cached href_root;
+@@ -158,12 +163,7 @@ struct btrfs_delayed_ref_root {
+ 
+ 	u64 pending_csums;
+ 
+-	/*
+-	 * set when the tree is flushing before a transaction commit,
+-	 * used by the throttling code to decide if new updates need
+-	 * to be run right away
+-	 */
+-	int flushing;
++	unsigned long flags;
+ 
+ 	u64 run_delayed_start;
+ 
+diff --git a/fs/btrfs/transaction.c b/fs/btrfs/transaction.c
+index f51f9e39bcee..ccd37fbe5db1 100644
+--- a/fs/btrfs/transaction.c
++++ b/fs/btrfs/transaction.c
+@@ -909,9 +909,9 @@ bool btrfs_should_end_transaction(struct btrfs_trans_handle *trans)
+ {
+ 	struct btrfs_transaction *cur_trans = trans->transaction;
+ 
+-	smp_mb();
+ 	if (cur_trans->state >= TRANS_STATE_COMMIT_START ||
+-	    cur_trans->delayed_refs.flushing)
++	    test_bit(BTRFS_DELAYED_REFS_FLUSHING,
++		     &cur_trans->delayed_refs.flags))
+ 		return true;
+ 
+ 	return should_end_transaction(trans);
+@@ -2043,23 +2043,22 @@ int btrfs_commit_transaction(struct btrfs_trans_handle *trans)
+ 	btrfs_trans_release_metadata(trans);
+ 	trans->block_rsv = NULL;
+ 
+-	/* make a pass through all the delayed refs we have so far
+-	 * any runnings procs may add more while we are here
+-	 */
+-	ret = btrfs_run_delayed_refs(trans, 0);
+-	if (ret) {
+-		btrfs_end_transaction(trans);
+-		return ret;
+-	}
+-
+-	cur_trans = trans->transaction;
+-
+ 	/*
+-	 * set the flushing flag so procs in this transaction have to
+-	 * start sending their work down.
++	 * We only want one transaction commit doing the flushing so we do not
++	 * waste a bunch of time on lock contention on the extent root node.
+ 	 */
+-	cur_trans->delayed_refs.flushing = 1;
+-	smp_wmb();
++	if (!test_and_set_bit(BTRFS_DELAYED_REFS_FLUSHING,
++			      &cur_trans->delayed_refs.flags)) {
++		/*
++		 * make a pass through all the delayed refs we have so far
++		 * any runnings procs may add more while we are here
++		 */
++		ret = btrfs_run_delayed_refs(trans, 0);
++		if (ret) {
++			btrfs_end_transaction(trans);
++			return ret;
++		}
++	}
+ 
+ 	btrfs_create_pending_block_groups(trans);
+ 
+
+From patchwork Fri Dec 18 19:24:21 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Josef Bacik <josef@toxicpanda.com>
+X-Patchwork-Id: 11982831
+Return-Path: <linux-btrfs-owner@kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+X-Spam-Level: 
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4676CC2BBD5
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:16 +0000 (UTC)
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by mail.kernel.org (Postfix) with ESMTP id 1DF6423B84
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:16 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S1733127AbgLRTZP (ORCPT <rfc822;linux-btrfs@archiver.kernel.org>);
+        Fri, 18 Dec 2020 14:25:15 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49032 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727830AbgLRTZP (ORCPT
+        <rfc822;linux-btrfs@vger.kernel.org>);
+        Fri, 18 Dec 2020 14:25:15 -0500
+Received: from mail-qt1-x82b.google.com (mail-qt1-x82b.google.com
+ [IPv6:2607:f8b0:4864:20::82b])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9C29CC061282
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:34 -0800 (PST)
+Received: by mail-qt1-x82b.google.com with SMTP id a6so2077370qtw.6
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:34 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=toxicpanda-com.20150623.gappssmtp.com; s=20150623;
+        h=from:to:cc:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=eIfUdd9SMDMV7st/xib0XwZ+96qQemHgJNdz3/SGt4o=;
+        b=J4qjYcgyqIYaCEOX/C8ZKkt0O0f+iB3JOEsH4bcNc4PdLDbScBVNx2CDuZqrwMmA4A
+         wM9v+3ezAH8B5fE8FmtXoG4sj6ykYasKFbHHVG2xcwJI3/wHhIsFVuRWxVbGoc9/XH5N
+         G/+w6SLrpw9wiiPcjtIsR3MgRnr+ACImPOFKjm6wJFNvdcukQ/8LO/7RRGNfmD/v3kfx
+         DduBABt1MV0YQvq4gcrdZbfs4GnYBjzE8NJYTbyeev2/EJ9EJIBFNC2JB9L/rhJoSUWb
+         /KmWrChubNMmYj3AcuD0XA78wj0NxAQDeCiMeTIdwZ2VXcJIrVNfwxlIVB4O+CGN/vMS
+         dIjQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=eIfUdd9SMDMV7st/xib0XwZ+96qQemHgJNdz3/SGt4o=;
+        b=H7kwB+tQm8eUejWkmyYWtxORWKTd7Ov1U4RMayzw8SgXaDYQ+eI3/DV6tMtn8+vVlC
+         S/xsVemJuETO9+9yKl9exBuD8vT2SWs78v+xgJpghU+dbkeUKgEjYLfFfkdUWypV/uEZ
+         t7dMfWll0C5LSqOqc/57Sqau5xDRX6iXwXQUj9/9I+rdQhwWKqe8JIM66R5ZKGKBj3mT
+         r2kQWfd7I1GIB8HEiSSXn8xTaFkYedP6KrQ6dYpZk28EoUR2TVNGiEd+BNE79eJdn7qz
+         X1gpQbM0HbGiCeTchOjmjyW+i8K78Nq76dCFx6NksoUm9j00sfbIsAFOISYAfa6T+NLD
+         mRnQ==
+X-Gm-Message-State: AOAM531DHCIQeINtMcjuawLq1kHplpYC1yPpXD7ht6lN4Lt9KW0EDiI+
+        DqC1ZcMk7FN6rJfDKYWRNu8SkMQ8AbMp7Nvx
+X-Google-Smtp-Source: 
+ ABdhPJzwPO1Coo2WCGitBw6TZkGZ7Z/p4/SwTdx2c234Dcn1ybV9tk+8ayD1wNbBmsaGOiNUFgkJtA==
+X-Received: by 2002:ac8:47da:: with SMTP id d26mr5396685qtr.4.1608319473526;
+        Fri, 18 Dec 2020 11:24:33 -0800 (PST)
+Received: from localhost (cpe-174-109-172-136.nc.res.rr.com.
+ [174.109.172.136])
+        by smtp.gmail.com with ESMTPSA id
+ d25sm6174632qkl.97.2020.12.18.11.24.32
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 18 Dec 2020 11:24:32 -0800 (PST)
+From: Josef Bacik <josef@toxicpanda.com>
+To: linux-btrfs@vger.kernel.org, kernel-team@fb.com
+Cc: Nikolay Borisov <nborisov@suse.com>
+Subject: [PATCH v5 3/8] btrfs: delayed refs pre-flushing should only run the
+ heads we have
+Date: Fri, 18 Dec 2020 14:24:21 -0500
+Message-Id: 
+ <1beb0dccc468e2190062281005f2616bda623924.1608319304.git.josef@toxicpanda.com>
+X-Mailer: git-send-email 2.26.2
+In-Reply-To: <cover.1608319304.git.josef@toxicpanda.com>
+References: <cover.1608319304.git.josef@toxicpanda.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-btrfs.vger.kernel.org>
+X-Mailing-List: linux-btrfs@vger.kernel.org
+
+Previously our delayed ref running used the total number of items as the
+items to run.  However we changed that to number of heads to run with
+the delayed_refs_rsv, as generally we want to run all of the operations
+for one bytenr.
+
+But with btrfs_run_delayed_refs(trans, 0) we set our count to 2x the
+number of items that we have.  This is generally fine, but if we have
+some operation generation loads of delayed refs while we're doing this
+pre-flushing in the transaction commit, we'll just spin forever doing
+delayed refs.
+
+Fix this to simply pick the number of delayed refs we currently have,
+that way we do not end up doing a lot of extra work that's being
+generated in other threads.
+
+Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+Reviewed-by: Nikolay Borisov <nborisov@suse.com>
+---
+ fs/btrfs/extent-tree.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/btrfs/extent-tree.c b/fs/btrfs/extent-tree.c
+index d79b8369e6aa..b6d774803a2c 100644
+--- a/fs/btrfs/extent-tree.c
++++ b/fs/btrfs/extent-tree.c
+@@ -2160,7 +2160,7 @@ int btrfs_run_delayed_refs(struct btrfs_trans_handle *trans,
+ 
+ 	delayed_refs = &trans->transaction->delayed_refs;
+ 	if (count == 0)
+-		count = atomic_read(&delayed_refs->num_entries) * 2;
++		count = delayed_refs->num_heads_ready;
+ 
+ again:
+ #ifdef SCRAMBLE_DELAYED_REFS
+
+From patchwork Fri Dec 18 19:24:22 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Josef Bacik <josef@toxicpanda.com>
+X-Patchwork-Id: 11982833
+Return-Path: <linux-btrfs-owner@kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+X-Spam-Level: 
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A8F1FC4361B
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:17 +0000 (UTC)
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by mail.kernel.org (Postfix) with ESMTP id 83C4223B84
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:17 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S1733130AbgLRTZR (ORCPT <rfc822;linux-btrfs@archiver.kernel.org>);
+        Fri, 18 Dec 2020 14:25:17 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49038 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727830AbgLRTZQ (ORCPT
+        <rfc822;linux-btrfs@vger.kernel.org>);
+        Fri, 18 Dec 2020 14:25:16 -0500
+Received: from mail-qv1-xf32.google.com (mail-qv1-xf32.google.com
+ [IPv6:2607:f8b0:4864:20::f32])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 59E38C061285
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:36 -0800 (PST)
+Received: by mail-qv1-xf32.google.com with SMTP id bd6so1418702qvb.9
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:36 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=toxicpanda-com.20150623.gappssmtp.com; s=20150623;
+        h=from:to:cc:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=Qojktz18/k706u7aHY0ojrhKydGouSH/+GIdN3/ZCtQ=;
+        b=g7iW0wtExlGjn4CFH7vivW34EgLR9ML8x62fmIjBVdFMCYwmMA3offetAvG5ihklM7
+         lyfYD2qFBaY+GF0azG81qnIERgZVGMUHc+vN+hTC2r5g8AzwyFbXMrMxA8p6Fq3/z043
+         jNvVEkMcPYUBErOMJnf4FULSUEijttiAXDr9PWs077DMK47s4XnjNEfl9wr1haWTRiP8
+         qRTcs7Yt2o1WE76hYuIT3jufrYlgPMNIKhQn5UTmnGanXusll08yyC+Wo19GFopkQckH
+         wDP3hKqzUnhx96FkfqH14Vd7gunPGrD2iCYBfotW7W2psZFqOKIFvbN2yUqd1jVW2ix5
+         04TQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=Qojktz18/k706u7aHY0ojrhKydGouSH/+GIdN3/ZCtQ=;
+        b=qYBf1qgdJk1kLsthsDGGPHqusi8uqXbL2mrLQ5RSm+xSkFYkhzGIilVAcK/vONO501
+         k8HMzsrLcqhbfdc4CWnGooa0NhYi5xCXIHH9QUqdzNVBLxnOjrvCOfOHcqIrG07pumgA
+         XuniIRvw6m2dg4m+xybsp4s2nLK5jR3lgGPEh4tPt6BxuJ0tkfVbQm8WiV/0gkJGC2k/
+         k3679NgcSD3AIu+3eCaVtPT6UHZlq5GtYJ7MLjHd0DbOxUQk3bjyTkBtGQNLM5njdiM3
+         oAcU7c+QaMdFNbai3YNPLb/5XTvo/uJEE5+ROyPDKPBZ0yn8xgWXt1J3pV0ik5FTPr9/
+         2Jtg==
+X-Gm-Message-State: AOAM533E69YGza+L5B9+ukCBcC0idu29k+v7rJzfSW3AgLebgRDdzTaq
+        vVAgEqlUra1QaVvHsK9UNRnLOGQgGwYQz6HT
+X-Google-Smtp-Source: 
+ ABdhPJxNBF+M23D9l49nqvFWKDXzj0hPAmS3YGOo3aPr51Xm8qdCSjqO1DiKEzAx4lpQTB84nvCqLA==
+X-Received: by 2002:a0c:b990:: with SMTP id v16mr2388329qvf.16.1608319475194;
+        Fri, 18 Dec 2020 11:24:35 -0800 (PST)
+Received: from localhost (cpe-174-109-172-136.nc.res.rr.com.
+ [174.109.172.136])
+        by smtp.gmail.com with ESMTPSA id
+ q194sm6224093qka.102.2020.12.18.11.24.34
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 18 Dec 2020 11:24:34 -0800 (PST)
+From: Josef Bacik <josef@toxicpanda.com>
+To: linux-btrfs@vger.kernel.org, kernel-team@fb.com
+Cc: Nikolay Borisov <nborisov@suse.com>
+Subject: [PATCH v5 4/8] btrfs: only run delayed refs once before committing
+Date: Fri, 18 Dec 2020 14:24:22 -0500
+Message-Id: 
+ <09a77271aa482fac97c8cf3e3cb4daf36d183e95.1608319304.git.josef@toxicpanda.com>
+X-Mailer: git-send-email 2.26.2
+In-Reply-To: <cover.1608319304.git.josef@toxicpanda.com>
+References: <cover.1608319304.git.josef@toxicpanda.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-btrfs.vger.kernel.org>
+X-Mailing-List: linux-btrfs@vger.kernel.org
+
+We try to pre-flush the delayed refs when committing, because we want to
+do as little work as possible in the critical section of the transaction
+commit.
+
+However doing this twice can lead to very long transaction commit delays
+as other threads are allowed to continue to generate more delayed refs,
+which potentially delays the commit by multiple minutes in very extreme
+cases.
+
+So simply stick to one pre-flush, and then continue the rest of the
+transaction commit.
+
+Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+Reviewed-by: Nikolay Borisov <nborisov@suse.com>
+---
+ fs/btrfs/transaction.c | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/fs/btrfs/transaction.c b/fs/btrfs/transaction.c
+index ccd37fbe5db1..4776e055f7f9 100644
+--- a/fs/btrfs/transaction.c
++++ b/fs/btrfs/transaction.c
+@@ -2062,12 +2062,6 @@ int btrfs_commit_transaction(struct btrfs_trans_handle *trans)
+ 
+ 	btrfs_create_pending_block_groups(trans);
+ 
+-	ret = btrfs_run_delayed_refs(trans, 0);
+-	if (ret) {
+-		btrfs_end_transaction(trans);
+-		return ret;
+-	}
+-
+ 	if (!test_bit(BTRFS_TRANS_DIRTY_BG_RUN, &cur_trans->flags)) {
+ 		int run_it = 0;
+ 
+
+From patchwork Fri Dec 18 19:24:23 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Josef Bacik <josef@toxicpanda.com>
+X-Patchwork-Id: 11982841
+Return-Path: <linux-btrfs-owner@kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+X-Spam-Level: 
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 87423C2D0E4
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:55 +0000 (UTC)
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by mail.kernel.org (Postfix) with ESMTP id 3F26E23B84
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:55 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S1733157AbgLRTZx (ORCPT <rfc822;linux-btrfs@archiver.kernel.org>);
+        Fri, 18 Dec 2020 14:25:53 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49130 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1725858AbgLRTZx (ORCPT
+        <rfc822;linux-btrfs@vger.kernel.org>);
+        Fri, 18 Dec 2020 14:25:53 -0500
+Received: from mail-qt1-x829.google.com (mail-qt1-x829.google.com
+ [IPv6:2607:f8b0:4864:20::829])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 155D5C061248
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:38 -0800 (PST)
+Received: by mail-qt1-x829.google.com with SMTP id 7so2104023qtp.1
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:38 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=toxicpanda-com.20150623.gappssmtp.com; s=20150623;
+        h=from:to:subject:date:message-id:in-reply-to:references:mime-version
+         :content-transfer-encoding;
+        bh=2xJ+yz7g3j1yJ2RKE5h2nxhFWYtKIZLg1oF/4Ca3RgI=;
+        b=Z3+P3XnPxAzhQLHnWRK3cyiy5j9sfdFafJ3+OTQkCzPqgLrbhgIZPiLMeiBOhdqJOG
+         LK9A9KPbbhg59T2/QYAZwbD+8bjBi36r16kXWzxHH6+jJiaOatpw3ijBlBYEN8JoaXEu
+         JRKHHkngba7mvqaY0/2sokrhrlR7WqtWliXcPbCgCjQfkkI2hsdwTPrMlueehl2QNa/g
+         c5Ws45blk5lRn2S/rIf3aocfYchy2Rr1+oZMJWiJS1bqtKxvtTNgTUSWur4R7b7La7D1
+         b+xcau6JANDPDuEL6ikVe96Obm83b/nOzr+LS7Uk1Vr0m6nAAzEnlsWauve/A/khcsmH
+         H82w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=2xJ+yz7g3j1yJ2RKE5h2nxhFWYtKIZLg1oF/4Ca3RgI=;
+        b=MJA4j6fMInaxHghyBJHa0LFKxY5L0+N9/vm8fjrs/nZc/jUTd+LE01N1Q84FsMCOxE
+         85h6peG9uPJzIRXWvo7lQcW54pQUpyj1DjxZbeUtpdvKsTzCQjd/k9BnzTnML3aDDGZp
+         XtQh4i12m3wtixKhYjVBOCaIr+Rs5NvYcjbzy8ACPMOnlFfaCm1dnB2dxtWvQq397t7X
+         A6AnkyoTLzcwSQhhBeQE5HLiTtIpYi8tpMk9iH5voJ3tvrFWYcaQr1KPiuHHcE/4lYRu
+         NIAbuTcwdFd+/Wljkd7uC5wanD5vkjPhpdt48dtGgNET9eEEeRcYkJyVmKsP2f9v/5ns
+         EVIg==
+X-Gm-Message-State: AOAM533H0CI1FYX3rSnSXAEBlRkO28J86YdxeZ8TBDP7Vlqlfb7mFQAZ
+        t3UYXRcZcVWVf+oVpWpoIsKQsuYcWvcuQsTA
+X-Google-Smtp-Source: 
+ ABdhPJzo4fEGLgsXmPkZFD/FSAgrgizAuYA5dGSkMcicm5kkCbDbXS6vendrCdHc7G4u/QIBoVr1mA==
+X-Received: by 2002:a05:622a:213:: with SMTP id
+ b19mr5476038qtx.199.1608319476933;
+        Fri, 18 Dec 2020 11:24:36 -0800 (PST)
+Received: from localhost (cpe-174-109-172-136.nc.res.rr.com.
+ [174.109.172.136])
+        by smtp.gmail.com with ESMTPSA id
+ a194sm5897774qkc.70.2020.12.18.11.24.36
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 18 Dec 2020 11:24:36 -0800 (PST)
+From: Josef Bacik <josef@toxicpanda.com>
+To: linux-btrfs@vger.kernel.org, kernel-team@fb.com
+Subject: [PATCH v5 5/8] btrfs: move delayed ref flushing for qgroup into
+ qgroup helper
+Date: Fri, 18 Dec 2020 14:24:23 -0500
+Message-Id: 
+ <fd22f767d5867daf79da60faad9818e5202fe714.1608319304.git.josef@toxicpanda.com>
+X-Mailer: git-send-email 2.26.2
+In-Reply-To: <cover.1608319304.git.josef@toxicpanda.com>
+References: <cover.1608319304.git.josef@toxicpanda.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-btrfs.vger.kernel.org>
+X-Mailing-List: linux-btrfs@vger.kernel.org
+
+The commit d67263354541 ("btrfs: qgroup: Make snapshot accounting work
+with new extent-oriented qgroup.") added a flush of the delayed refs
+during snapshot creation in order to get the qgroup accounting properly.
+However this code has changed and been moved to it's own helper that is
+skipped if qgroups are turned off.  Move the flushing to the helper, as
+we do not need it when qgroups are turned off.
+
+Also add a comment explaining why it exists, and why it doesn't actually
+save us.  This will be helpful later when we try to fix qgroup
+accounting properly.
+
+Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+---
+ fs/btrfs/transaction.c | 23 +++++++++++++++++------
+ 1 file changed, 17 insertions(+), 6 deletions(-)
+
+diff --git a/fs/btrfs/transaction.c b/fs/btrfs/transaction.c
+index 4776e055f7f9..5738763c514b 100644
+--- a/fs/btrfs/transaction.c
++++ b/fs/btrfs/transaction.c
+@@ -1433,6 +1433,23 @@ static int qgroup_account_snapshot(struct btrfs_trans_handle *trans,
+ 	 */
+ 	record_root_in_trans(trans, src, 1);
+ 
++	/*
++	 * btrfs_qgroup_inherit relies on a consistent view of the usage for the
++	 * src root, so we must run the delayed refs here.
++	 *
++	 * However this isn't particularly fool proof, because there's no
++	 * synchronization keeping us from changing the tree after this point
++	 * before we do the qgroup_inherit, or even from making changes while
++	 * we're doing the qgroup_inherit.  But that's a problem for the future,
++	 * for now flush the delayed refs to narrow the race window where the
++	 * qgroup counters could end up wrong.
++	 */
++	ret = btrfs_run_delayed_refs(trans, (unsigned long)-1);
++	if (ret) {
++		btrfs_abort_transaction(trans, ret);
++		goto out;
++	}
++
+ 	/*
+ 	 * We are going to commit transaction, see btrfs_commit_transaction()
+ 	 * comment for reason locking tree_log_mutex
+@@ -1686,12 +1703,6 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
+ 		goto fail;
+ 	}
+ 
+-	ret = btrfs_run_delayed_refs(trans, (unsigned long)-1);
+-	if (ret) {
+-		btrfs_abort_transaction(trans, ret);
+-		goto fail;
+-	}
+-
+ 	/*
+ 	 * Do special qgroup accounting for snapshot, as we do some qgroup
+ 	 * snapshot hack to do fast snapshot.
+
+From patchwork Fri Dec 18 19:24:24 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Josef Bacik <josef@toxicpanda.com>
+X-Patchwork-Id: 11982839
+Return-Path: <linux-btrfs-owner@kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+X-Spam-Level: 
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DE686C4361B
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:54 +0000 (UTC)
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by mail.kernel.org (Postfix) with ESMTP id 903A423B84
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:54 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S1733185AbgLRTZy (ORCPT <rfc822;linux-btrfs@archiver.kernel.org>);
+        Fri, 18 Dec 2020 14:25:54 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49132 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1727830AbgLRTZx (ORCPT
+        <rfc822;linux-btrfs@vger.kernel.org>);
+        Fri, 18 Dec 2020 14:25:53 -0500
+Received: from mail-qv1-xf36.google.com (mail-qv1-xf36.google.com
+ [IPv6:2607:f8b0:4864:20::f36])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DC6BCC061257
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:39 -0800 (PST)
+Received: by mail-qv1-xf36.google.com with SMTP id et9so1410980qvb.10
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:39 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=toxicpanda-com.20150623.gappssmtp.com; s=20150623;
+        h=from:to:subject:date:message-id:in-reply-to:references:mime-version
+         :content-transfer-encoding;
+        bh=YJOrmFF5Rg/rNiR/Y0w01wnyju/Fgp2JSLkpkzi6Uiw=;
+        b=JxX32Ky1LPbxItEbYgt9QtupoDhhhs6JYJkWxxc35Bp62QdSt1EwWNNQWPEcrROaiY
+         kfIpKFinP3fua39YGOVq4ONrczr6/92U0JWqn59+5qFMn8aJ6H1Wv/g0n+LR6Vw6Fa6I
+         vKMfzXb2VrwBCWHXKHctVdTRgmst7F7YL7HAaYmJK/u6LXBUDQCciM+YrslZaYGpND6S
+         9Elq6ElwOT7wpY9I258n+CpVZegZsF6ocOQg3PcOeM4QOSt6Upvk9ZvOv3nY0P1Xf3Q4
+         1FXE3b8HXRKJaLBD6j07U9KV70trD3y1LCr9wN5O8aLAg+OMmIOW7mzoic0nggkYPNGI
+         KMsA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=YJOrmFF5Rg/rNiR/Y0w01wnyju/Fgp2JSLkpkzi6Uiw=;
+        b=gBBMQPWvqQzlI0ig7B2L+ko5KVHV33v0EQp1kuerROIE907qwhTHl8Rof+ejO7dJ4w
+         qTNDoPNQsqzVjIDIPBbD9qTMCrioq4KR4Mb6sZhlLQadutucs/uKxibYwGyA5fIpZBHl
+         ZmGLklS/ObT3jjCLokk/86eVIHhGiYIb4pER6ZmsRB4YqAWg2xHLVhwezLafnpvQz+ST
+         J9ZlLMK7wxDOToXz0uE7XPb5WbGjdLbN5cp5vVzJ6q6bRud7m7q/gDMDs6FDIDOkI/3V
+         6upenvt8gkixsJ/n0QCjCpXFPulXiedT0vcK90g76u+G0k6WeibZNk4JxELloNYTxpAW
+         O6Eg==
+X-Gm-Message-State: AOAM533ujaHEJS7L43lRJWbT/gH4ApYPcY/OzIZGq7eNifVSr1ReyrrO
+        gzHGBvhdwavWXW4bXM3yJVngzYGYYTynHOWB
+X-Google-Smtp-Source: 
+ ABdhPJwMcjxEp/JPjxiYEtN9y0TRzVG32ckcb94cG8fkBQZKbfcVXuRVpXQO4lE6oaziqQNXJQG19w==
+X-Received: by 2002:a05:6214:d4a:: with SMTP id
+ 10mr6147680qvr.62.1608319478692;
+        Fri, 18 Dec 2020 11:24:38 -0800 (PST)
+Received: from localhost (cpe-174-109-172-136.nc.res.rr.com.
+ [174.109.172.136])
+        by smtp.gmail.com with ESMTPSA id
+ f59sm5777558qtd.84.2020.12.18.11.24.37
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 18 Dec 2020 11:24:38 -0800 (PST)
+From: Josef Bacik <josef@toxicpanda.com>
+To: linux-btrfs@vger.kernel.org, kernel-team@fb.com
+Subject: [PATCH v5 6/8] btrfs: remove bogus BUG_ON in
+ alloc_reserved_tree_block
+Date: Fri, 18 Dec 2020 14:24:24 -0500
+Message-Id: 
+ <1af52fb73699261a72a67cae1695efa1935e64e6.1608319304.git.josef@toxicpanda.com>
+X-Mailer: git-send-email 2.26.2
+In-Reply-To: <cover.1608319304.git.josef@toxicpanda.com>
+References: <cover.1608319304.git.josef@toxicpanda.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-btrfs.vger.kernel.org>
+X-Mailing-List: linux-btrfs@vger.kernel.org
+
+The fix 361048f586f5 ("Btrfs: fix full backref problem when inserting
+shared block reference") added a delayed ref flushing at subvolume
+creation time in order to avoid hitting this particular BUG_ON().
+
+Before this fix, we were tripping the BUG_ON() by
+
+1. Modify snapshot A, which creates blocks with a normal reference for
+   snapshot A, as A is the owner of these blocks.  We now have delayed
+   refs for these blocks.
+2. Create a snapshot of A named B, which pushes references for the
+   children blocks of the root node for the new root B, thus creating
+   more delayed refs for newly allocated blocks.
+3. A is modified, and because the metadata blocks can now be shared, it
+   must push FULL_BACKREF references to the children of any block that A
+   cow's down it's path to its target key.
+4. Delayed refs are run.  Because these are newly allocated blocks, we
+   have ->must_insert_reserved reserved set on the delayed ref head, we
+   call into alloc_reserved_tree_block() to add the extent item, and
+   then add our ref.  At the time of this fix, we were ordering
+   FULL_BACKREF delayed ref operations first, so we'd go to add this
+   reference and then BUG_ON() because we didn't have the FULL_BACKREF
+   flag set.
+
+The patch fixed this problem by making sure we ran the delayed refs
+before we had the chance to modify A.  This meant that any *new* blocks
+would have had their extent items created _before_ we would ever
+actually cow down and generate FULL_BACKREF entries.  Thus the problem
+went away.
+
+However this BUG_ON() is actually completely bogus.  The existence of a
+full backref doesn't necessarily mean that FULL_BACKREF must be set on
+that block, it must only be set on the actual parent itself.  Consider
+the example provided above.  If we cow down one path from A, any nodes
+are going to have a FULL_BACKREF ref pushed down to _all_ of their
+children, but not all of the children are going to have FULL_BACKREF
+set.  It is completely valid to have an extent item with normal and full
+back refs without FULL_BACKREF actually set on the block itself.
+
+As a final note, I have been testing with the patch
+
+  btrfs: stop running all delayed refs during snapshot
+
+which removed this flushing.  My test was a torture test which did a lot
+of operations while snapshotting and deleting snapshots as well as
+relocation, and I never tripped this BUG_ON().  This is actually because
+at the time of 361048f586f5, we ordered SHARED keys _before_ normal
+references, and thus they would get run first.  However currently they
+are ordered _after_ normal references, so we'd do the initial creation
+without having a shared reference, and thus not hit this BUG_ON(), which
+explains why I didn't start hitting this problem during my testing with
+my other patch applied.
+
+Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+---
+ fs/btrfs/extent-tree.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/fs/btrfs/extent-tree.c b/fs/btrfs/extent-tree.c
+index b6d774803a2c..c4846694ae9c 100644
+--- a/fs/btrfs/extent-tree.c
++++ b/fs/btrfs/extent-tree.c
+@@ -4516,7 +4516,6 @@ static int alloc_reserved_tree_block(struct btrfs_trans_handle *trans,
+ 	}
+ 
+ 	if (node->type == BTRFS_SHARED_BLOCK_REF_KEY) {
+-		BUG_ON(!(flags & BTRFS_BLOCK_FLAG_FULL_BACKREF));
+ 		btrfs_set_extent_inline_ref_type(leaf, iref,
+ 						 BTRFS_SHARED_BLOCK_REF_KEY);
+ 		btrfs_set_extent_inline_ref_offset(leaf, iref, ref->parent);
+
+From patchwork Fri Dec 18 19:24:25 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Josef Bacik <josef@toxicpanda.com>
+X-Patchwork-Id: 11982845
+Return-Path: <linux-btrfs-owner@kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+X-Spam-Level: 
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2A822C2BBD5
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:56 +0000 (UTC)
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by mail.kernel.org (Postfix) with ESMTP id DBBC923B84
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:55 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S1733190AbgLRTZz (ORCPT <rfc822;linux-btrfs@archiver.kernel.org>);
+        Fri, 18 Dec 2020 14:25:55 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49134 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1728047AbgLRTZx (ORCPT
+        <rfc822;linux-btrfs@vger.kernel.org>);
+        Fri, 18 Dec 2020 14:25:53 -0500
+Received: from mail-qv1-xf2a.google.com (mail-qv1-xf2a.google.com
+ [IPv6:2607:f8b0:4864:20::f2a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 69324C0611C5
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:41 -0800 (PST)
+Received: by mail-qv1-xf2a.google.com with SMTP id s6so1421604qvn.6
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:41 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=toxicpanda-com.20150623.gappssmtp.com; s=20150623;
+        h=from:to:subject:date:message-id:in-reply-to:references:mime-version
+         :content-transfer-encoding;
+        bh=7vrYbJdgLMqX3E0W/vJIWks1bdSk6AdYJbUzqeEzMuM=;
+        b=BISX1M2vzXQAj0HSWE6GPcHnariSQsn0zBMseEb6Hbd75UBpCFEjRt7dut5bQR3uIA
+         jn6bQwsn6W9LaBY9vdB5LYbZKynI1UUebGsfqNKxWmiDOtsksq2nudegXAO162GTgkld
+         7n5wPQvy/uG/OliPEi2bz00p+0/7T3o5x2LStuD6MTkkmCyPb8+Kg6kaJ1Gbg7+BXKIT
+         KURrmW6Ng01sIo7jAWReUsOhxjq+KxwwAAwvyP17zfEktd1QWcs5f8HTdzm8JX4MQ9kQ
+         Bt4UA2NysrK3wkMJDn1Z5ojTkSJN8F/8QS6XBbFYPgJVEADPE84rOEx5a/Mb30vFJUum
+         GSzg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=7vrYbJdgLMqX3E0W/vJIWks1bdSk6AdYJbUzqeEzMuM=;
+        b=NsdivfDSDDC/IsA4weclvQ6xc2d3925k44EyNLIq7+9tmc/mPA+bj9NJNLvODV4Q/D
+         DFj7qccpSCq+F5SV1Q4RZJgcTXCwDwM4gd+JMDlZ+veT5vG69s9HIKnAsUjRAebYe/I5
+         oVXRvVt0Wh9BBMusAb7tvBu1aSp+zEdWD10UlY57cgM8cVQ4Ml5SiXaYMv1JdM6C3X1t
+         na7vJ0qZR7NUPv05tNhJcLczj7Mjbi0Ctt3vKpdVT2H/6UTrcBOioOCcCLHUJcfF51a5
+         Jd0Qg5+B/xS8kesAeDQbDxvva24+fwkQDSupOgAUMtp4cWhrfzil/crKQl0wbzkU8YiV
+         JQCg==
+X-Gm-Message-State: AOAM532HCFiFzehiS5ya1Dz2hd4P2zXoWMefHZhJRRjEWL7akns10CFg
+        /b36eEhQEX6+4yeUZZwBNed68OW9iJmBRXtc
+X-Google-Smtp-Source: 
+ ABdhPJzR1PU8HG5UJ4qOfftGPxx8Z91rNjOXFSZsOtwL6byAdchAP8ShBnI+sAq1jEyeUZG4CYtWhA==
+X-Received: by 2002:ad4:5188:: with SMTP id b8mr5991204qvp.55.1608319480333;
+        Fri, 18 Dec 2020 11:24:40 -0800 (PST)
+Received: from localhost (cpe-174-109-172-136.nc.res.rr.com.
+ [174.109.172.136])
+        by smtp.gmail.com with ESMTPSA id
+ u26sm6178107qkm.69.2020.12.18.11.24.39
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 18 Dec 2020 11:24:39 -0800 (PST)
+From: Josef Bacik <josef@toxicpanda.com>
+To: linux-btrfs@vger.kernel.org, kernel-team@fb.com
+Subject: [PATCH v5 7/8] btrfs: stop running all delayed refs during snapshot
+Date: Fri, 18 Dec 2020 14:24:25 -0500
+Message-Id: 
+ <a486f5158c3a8955b8320f483267efdf3e1ff20d.1608319304.git.josef@toxicpanda.com>
+X-Mailer: git-send-email 2.26.2
+In-Reply-To: <cover.1608319304.git.josef@toxicpanda.com>
+References: <cover.1608319304.git.josef@toxicpanda.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-btrfs.vger.kernel.org>
+X-Mailing-List: linux-btrfs@vger.kernel.org
+
+This was added in commit 361048f586f5 ("Btrfs: fix full backref problem
+when inserting shared block reference") to address a problem where we
+hit the following BUG_ON() in alloc_reserved_tree_block
+
+        if (node->type == BTRFS_SHARED_BLOCK_REF_KEY) {
+                BUG_ON(!(flags & BTRFS_BLOCK_FLAG_FULL_BACKREF));
+
+However this BUG_ON() is bogus, and was removed by
+
+  btrfs: remove bogus BUG_ON in alloc_reserved_tree_block
+
+We no longer need to run delayed refs because of this, and can remove
+this flushing here.
+
+Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+---
+ fs/btrfs/transaction.c | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/fs/btrfs/transaction.c b/fs/btrfs/transaction.c
+index 5738763c514b..b3c9da5833db 100644
+--- a/fs/btrfs/transaction.c
++++ b/fs/btrfs/transaction.c
+@@ -1750,12 +1750,6 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
+ 		}
+ 	}
+ 
+-	ret = btrfs_run_delayed_refs(trans, (unsigned long)-1);
+-	if (ret) {
+-		btrfs_abort_transaction(trans, ret);
+-		goto fail;
+-	}
+-
+ fail:
+ 	pending->error = ret;
+ dir_item_existed:
+
+From patchwork Fri Dec 18 19:24:26 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Josef Bacik <josef@toxicpanda.com>
+X-Patchwork-Id: 11982843
+Return-Path: <linux-btrfs-owner@kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+X-Spam-Level: 
+X-Spam-Status: No, score=-16.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,HEADER_FROM_DIFFERENT_DOMAINS,INCLUDES_CR_TRAILER,INCLUDES_PATCH,
+	MAILING_LIST_MULTI,SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED,USER_AGENT_GIT
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail.kernel.org (mail.kernel.org [198.145.29.99])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BDF7FC3526C
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:56 +0000 (UTC)
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by mail.kernel.org (Postfix) with ESMTP id 7A3ED23B84
+	for <linux-btrfs@archiver.kernel.org>; Fri, 18 Dec 2020 19:25:56 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S1733187AbgLRTZz (ORCPT <rfc822;linux-btrfs@archiver.kernel.org>);
+        Fri, 18 Dec 2020 14:25:55 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49136 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1730181AbgLRTZx (ORCPT
+        <rfc822;linux-btrfs@vger.kernel.org>);
+        Fri, 18 Dec 2020 14:25:53 -0500
+Received: from mail-qk1-x730.google.com (mail-qk1-x730.google.com
+ [IPv6:2607:f8b0:4864:20::730])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2382EC0611CA
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:43 -0800 (PST)
+Received: by mail-qk1-x730.google.com with SMTP id 19so3046374qkm.8
+        for <linux-btrfs@vger.kernel.org>;
+ Fri, 18 Dec 2020 11:24:43 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=toxicpanda-com.20150623.gappssmtp.com; s=20150623;
+        h=from:to:cc:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=FzKcet6/7BG+1mcDeE25qoGayKzDTo3vyDgXLzyM8PE=;
+        b=s/hIjwQIx9nb9RkLYY9GItL8Q4M7NMalNrjBOlU+9nQ3sjYI3Cu2iBqW4mPnu+No9j
+         ruPcwsXniu3SArJx1srOrVD6rzHvhHobi/A/QmRsrCdJYLCyogUYgQ2fqkz1OTaLzHK5
+         chY01llWvekvP/BCY6RkYuWlQmnYiKy3c2N61IIy1AXdM407xQ2ctLiEW+0mqkEiB9aA
+         45eJlhgFVKeN3lEqjAi1pvnN0YoYzvk5eVOZW30IkUeF00bHrTiAAUg+e2JfOCiDdC/9
+         BxrHKGIzwoG+ei11LK8uZnKkPnkXoadiWTdgVFPMQasBMFNszAMdWQfrXbU3iU1EKZUN
+         5xbA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references:mime-version:content-transfer-encoding;
+        bh=FzKcet6/7BG+1mcDeE25qoGayKzDTo3vyDgXLzyM8PE=;
+        b=ajd7NrkeZ4+tbdOiYxZeqtsotl3yv519OnxD+jAYB6RuifVN4JnoLm8xJ6qMANAofU
+         3f0++grEi8XH+Q7UMP+drf8ywsgPwVwLBJZmTZwt858q+P0ywI2aVlJiODOzQbX9voyp
+         kVrdALPUmBVjQaQ+obgaU5iCulkbKh/xqL0n6AfnxqVLcEFv2aXxwQcUeZPmbjng2DpD
+         ux2gi+LUiV2lfXBDtpLtwT620Xd5ZqBBGBnsawG55MlLpT9tWQ4hiq07uyL468L4HBXc
+         hVQrsl+BtR3rZSUf8tt5ZzE31MYuDG7eI87E7YuFzCYSNBEdWVZUiyAslNnZ6ysfBRL4
+         vHvA==
+X-Gm-Message-State: AOAM533lTiQ1ZbXlhz42dcD2fj1Y5eMNEewz8STAqH1Z1QAI3qpYegMq
+        D71tfCTn7n0kMXLvhkfvHFU5kX5WUT8xyu67
+X-Google-Smtp-Source: 
+ ABdhPJw4lDICKfy5iYkD1Gpv3BgdY+Num6xBLX8tdkSuVt+kYQ7e6zY+RYl4CQW0dkOCajuSSJGaxQ==
+X-Received: by 2002:a37:7f02:: with SMTP id a2mr6259258qkd.356.1608319481990;
+        Fri, 18 Dec 2020 11:24:41 -0800 (PST)
+Received: from localhost (cpe-174-109-172-136.nc.res.rr.com.
+ [174.109.172.136])
+        by smtp.gmail.com with ESMTPSA id
+ z133sm6664502qka.20.2020.12.18.11.24.41
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 18 Dec 2020 11:24:41 -0800 (PST)
+From: Josef Bacik <josef@toxicpanda.com>
+To: linux-btrfs@vger.kernel.org, kernel-team@fb.com
+Cc: Nikolay Borisov <nborisov@suse.com>
+Subject: [PATCH v5 8/8] btrfs: run delayed refs less often in
+ commit_cowonly_roots
+Date: Fri, 18 Dec 2020 14:24:26 -0500
+Message-Id: 
+ <b777e31c0b1dbdfb30597e27ff00608651f0aa83.1608319304.git.josef@toxicpanda.com>
+X-Mailer: git-send-email 2.26.2
+In-Reply-To: <cover.1608319304.git.josef@toxicpanda.com>
+References: <cover.1608319304.git.josef@toxicpanda.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-btrfs.vger.kernel.org>
+X-Mailing-List: linux-btrfs@vger.kernel.org
+
+We love running delayed refs in commit_cowonly_roots, but it is a bit
+excessive.  I was seeing cases of running 3 or 4 refs a few times in a
+row during this time.  Instead simply update all of the roots first,
+then run delayed refs, then handle the empty block groups case, and then
+if we have any more dirty roots do the whole thing again.  This allows
+us to be much more efficient with our delayed ref running, as we can
+batch a few more operations at once.
+
+Reviewed-by: Nikolay Borisov <nborisov@suse.com>
+Signed-off-by: Josef Bacik <josef@toxicpanda.com>
+---
+ fs/btrfs/transaction.c | 23 ++++++++++++-----------
+ 1 file changed, 12 insertions(+), 11 deletions(-)
+
+diff --git a/fs/btrfs/transaction.c b/fs/btrfs/transaction.c
+index b3c9da5833db..8a6b38c01277 100644
+--- a/fs/btrfs/transaction.c
++++ b/fs/btrfs/transaction.c
+@@ -1227,10 +1227,6 @@ static noinline int commit_cowonly_roots(struct btrfs_trans_handle *trans)
+ 	btrfs_tree_unlock(eb);
+ 	free_extent_buffer(eb);
+ 
+-	if (ret)
+-		return ret;
+-
+-	ret = btrfs_run_delayed_refs(trans, (unsigned long)-1);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -1248,10 +1244,6 @@ static noinline int commit_cowonly_roots(struct btrfs_trans_handle *trans)
+ 	if (ret)
+ 		return ret;
+ 
+-	/* run_qgroups might have added some more refs */
+-	ret = btrfs_run_delayed_refs(trans, (unsigned long)-1);
+-	if (ret)
+-		return ret;
+ again:
+ 	while (!list_empty(&fs_info->dirty_cowonly_roots)) {
+ 		struct btrfs_root *root;
+@@ -1266,15 +1258,24 @@ static noinline int commit_cowonly_roots(struct btrfs_trans_handle *trans)
+ 		ret = update_cowonly_root(trans, root);
+ 		if (ret)
+ 			return ret;
+-		ret = btrfs_run_delayed_refs(trans, (unsigned long)-1);
+-		if (ret)
+-			return ret;
+ 	}
+ 
++	/* Now flush any delayed refs generated by updating all of the roots. */
++	ret = btrfs_run_delayed_refs(trans, (unsigned long)-1);
++	if (ret)
++		return ret;
++
+ 	while (!list_empty(dirty_bgs) || !list_empty(io_bgs)) {
+ 		ret = btrfs_write_dirty_block_groups(trans);
+ 		if (ret)
+ 			return ret;
++
++		/*
++		 * We're writing the dirty block groups, which could generate
++		 * delayed refs, which could generate more dirty block groups,
++		 * so we want to keep this flushing in this loop to make sure
++		 * everything gets run.
++		 */
+ 		ret = btrfs_run_delayed_refs(trans, (unsigned long)-1);
+ 		if (ret)
+ 			return ret;

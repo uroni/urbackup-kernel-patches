@@ -1,0 +1,11 @@
+--- linux-5.9.2.orig/fs/btrfs/inode.c	2020-10-31 17:12:42.075942882 +0100
++++ linux-5.9.2/fs/btrfs/inode.c	2020-10-31 17:14:22.891596829 +0100
+@@ -7998,7 +7998,7 @@
+ {
+ 	int	ret;
+ 
+-	ret = fiemap_prep(inode, fieinfo, start, &len, 0);
++	ret = fiemap_prep(inode, fieinfo, start, &len, 8 | 16);
+ 	if (ret)
+ 		return ret;
+ 

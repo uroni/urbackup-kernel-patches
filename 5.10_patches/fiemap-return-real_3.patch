@@ -1,0 +1,11 @@
+--- linux-4.19.36/include/uapi/linux/fiemap.h	2019-04-21 13:27:49.175888677 +0200
++++ linux-4.19.36/include/uapi/linux/fiemap.h	2019-04-21 13:28:06.168346580 +0200
+@@ -43,7 +43,7 @@
+ #define FIEMAP_FLAG_XATTR	0x00000002 /* map extended attribute tree */
+ #define FIEMAP_FLAG_CACHE	0x00000004 /* request caching of the extents */
+ 
+-#define FIEMAP_FLAGS_COMPAT	(FIEMAP_FLAG_SYNC | FIEMAP_FLAG_XATTR)
++#define FIEMAP_FLAGS_COMPAT	(FIEMAP_FLAG_SYNC | FIEMAP_FLAG_XATTR | 8 | 16)
+ 
+ #define FIEMAP_EXTENT_LAST		0x00000001 /* Last extent in file. */
+ #define FIEMAP_EXTENT_UNKNOWN		0x00000002 /* Data location unknown. */
